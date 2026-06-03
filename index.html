@@ -86,10 +86,11 @@
   <div id="results" class="hide"></div>
 
   <div class="foot">
-    Win = the position actually made money (<code>realizedPnl &gt; 0</code>) — real trading result, not just
-    whether the market resolved the wallet's way, so win rate and PnL stay consistent. A high win rate with
-    negative PnL is normal here: many small wins, a few large losses. Only closed positions count.
-    Sport and bet type are inferred from market slugs. Data: <code>data-api.polymarket.com/closed-positions</code>.
+    Hold-to-expiry model: win = the held outcome settled at 1 (<code>curPrice == 1</code>), regardless of what
+    the wallet actually did. PnL is hypothetical — as if every position were held to resolution: <code>+shares×(1−entry)</code>
+    on a win, <code>−stake</code> on a loss. The wallet's own realized trading PnL is ignored. Only settled positions
+    count, and all stats are scoped to entry price ≥ the floor (default 0.95). Sport/bet type inferred from slugs.
+    Data: <code>data-api.polymarket.com/closed-positions</code>.
   </div>
 </div>
 
@@ -165,29 +166,35 @@ function inferBetType(slug, title){
 
 function analyze(positions, {windowDays, floor}){
   const cutoff = windowDays>0 ? Date.now() - windowDays*86400000 : null;
-  const rows = [];
+  let rows = [];
   for(const p of positions){
     const ap = Number(p.avgPrice);
     const shares = Number(p.totalBought)||0;
-    const pnl = Number(p.realizedPnl)||0;
     const cp = Number(p.curPrice);
-    if(!Number.isFinite(ap)) continue;
-    if(pnl === 0) continue;                        // breakeven / dust — neither a win nor a loss
+    if(!Number.isFinite(ap) || !Number.isFinite(cp)) continue;
+    if(cp !== 0 && cp !== 1) continue;             // not settled yet — exclude (we model hold-to-expiry)
     const end = p.endDate ? new Date(p.endDate).getTime() : (p.timestamp? Number(p.timestamp)*1000 : null);
     if(cutoff && end!=null && end < cutoff) continue;
+    const won = cp === 1;                          // did the held outcome settle at 1?
     rows.push({
       title: p.title || p.slug || "Unknown market",
       outcome: p.outcome || "",
       slug: p.slug || "",
       avgPrice: ap,
       invested: ap*shares,
-      pnl,
-      win: pnl > 0,                                // win = actually made money, so win rate ↔ PnL agree
+      // hypothetical hold-to-expiry result, ignoring the wallet's actual trading:
+      //   win  -> shares*(1-ap)  (collect $1, paid ap)
+      //   loss -> -shares*ap     (lose the full stake)
+      pnl: shares*(cp - ap),
+      win: won,
       sport: inferSport(p.slug||"", p.title||""),
       betType: inferBetType(p.slug||"", p.title||""),
       end,
     });
   }
+
+  // Scope every stat below to the high-price band (entry price >= floor).
+  rows = rows.filter(r => r.avgPrice >= floor);
 
   const wins = rows.filter(r=>r.win).length;
   const losses = rows.length - wins;
@@ -297,16 +304,16 @@ function render(a){
     <div class="cards">${cards}</div>
 
     <section>
-      <h2>Win rate by entry-price bucket</h2>
-      <p class="note">Resolved bets with average entry price ≥ floor, in 0.01 buckets — the honest realized win rate.</p>
-      <table><thead><tr><th>Avg price bucket</th><th class="num">Count</th><th class="num">Wins</th>
-      <th class="num">Win rate</th><th class="num">Invested</th><th class="num">PnL</th></tr></thead>
+      <h2>Settlement rate by entry-price bucket</h2>
+      <p class="note">For each 0.01 entry-price band: how often the held outcome settled at 1 if held to expiry, and the hypothetical hold PnL.</p>
+      <table><thead><tr><th>Avg price bucket</th><th class="num">Count</th><th class="num">Settled 1</th>
+      <th class="num">Hit rate</th><th class="num">Invested</th><th class="num">Hold PnL</th></tr></thead>
       <tbody>${bucketRows}</tbody></table>
     </section>
 
     <section>
-      <h2>Full price distribution</h2>
-      <p class="note">All resolved bets across the whole price range.</p>
+      <h2>Settlement split (within band)</h2>
+      <p class="note">Coarse view of settled-at-1 rate and hold PnL across the high-price band.</p>
       <table><thead><tr><th>Price range</th><th class="num">Count</th><th class="num">Win rate</th><th class="num">PnL</th></tr></thead>
       <tbody>${distRows}</tbody></table>
     </section>
