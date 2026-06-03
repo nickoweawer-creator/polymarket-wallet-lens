@@ -50,6 +50,12 @@
   .truncate{max-width:430px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .foot{color:var(--muted);font-size:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:16px}
   .hide{display:none}
+  .tabs{display:flex;gap:8px;margin:4px 0 22px}
+  .tab{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-weight:600;border-radius:9px;padding:9px 16px;font-size:13px;cursor:pointer}
+  .tab-active{background:var(--accent);color:#04101f;border-color:var(--accent)}
+  .addr{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:2px}
+  .cap{color:var(--accent);font-weight:700}
+  td a{color:var(--ink);font-weight:600}
   .bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin-top:4px}
   .bar > i{display:block;height:100%;background:var(--pos)}
 </style>
@@ -57,8 +63,14 @@
 <body>
 <div class="wrap">
   <h1>Polymarket Wallet Lens</h1>
-  <p class="sub">Paste an account (proxy) address → realized win rate by entry-price bucket, losing bets, markets, and bet types. Pure client-side; reads public Polymarket data.</p>
+  <p class="sub">Analyze one Polymarket wallet, or browse the leaderboard of systematic favorite-buyers. Pure client-side; reads public Polymarket data.</p>
 
+  <nav class="tabs">
+    <button class="tab tab-active" data-view="wallet">Wallet analyzer</button>
+    <button class="tab" data-view="leaderboard">Leaderboard</button>
+  </nav>
+
+  <div id="view-wallet">
   <div class="controls">
     <label class="field">
       <span>Wallet address</span>
@@ -84,6 +96,29 @@
 
   <div id="status" class="status"></div>
   <div id="results" class="hide"></div>
+  </div><!-- /view-wallet -->
+
+  <div id="view-leaderboard" class="hide">
+    <div class="controls">
+      <label class="field"><span>Entry-price floor</span>
+        <select id="lbFloor"></select>
+      </label>
+      <label class="field"><span>Min settled bets</span>
+        <input id="lbMin" value="100" style="width:90px" />
+      </label>
+      <label class="field"><span>Sort by</span>
+        <select id="lbSort">
+          <option value="pnl">Hold PnL</option>
+          <option value="roi">ROI</option>
+          <option value="hit">Hit rate</option>
+          <option value="streak">Longest streak</option>
+          <option value="n">Bet count</option>
+        </select>
+      </label>
+    </div>
+    <div id="lbStatus" class="status"></div>
+    <div id="lbResults"></div>
+  </div>
 
   <div class="foot">
     Hold-to-expiry model: win = the held outcome settled at 1 (<code>curPrice == 1</code>), regardless of what
@@ -374,6 +409,56 @@ async function run(){
 $("run").addEventListener("click", run);
 $("addr").addEventListener("keydown", (e)=>{ if(e.key==="Enter") run(); });
 $("demo").addEventListener("click", ()=>{ $("addr").value="0x204f72f35326db932158cba6adff0b9a1da95e14"; run(); });
+
+/* ---------- Leaderboard tab ---------- */
+let LB = null;
+async function loadLeaderboard(){
+  if(LB) return;
+  $("lbStatus").textContent = "Loading leaderboard…";
+  try{
+    const r = await fetch("leaderboard.json", {cache:"no-store"});
+    if(!r.ok) throw new Error("leaderboard.json " + r.status);
+    LB = await r.json();
+    $("lbFloor").innerHTML = LB.floors.map(f=>`<option value="${f}" ${f==="0.95"?"selected":""}>${f}</option>`).join("");
+    $("lbStatus").textContent = `${LB.wallets.length} wallets precomputed · generated ${new Date(LB.generatedAt).toLocaleDateString()}`;
+    renderLeaderboard();
+  }catch(e){ LB=null; $("lbStatus").textContent = "Leaderboard data is still publishing — refresh in ~1 minute."; }
+}
+function renderLeaderboard(){
+  if(!LB) return;
+  const floor = $("lbFloor").value;
+  const min = Math.max(0, Number($("lbMin").value)||0);
+  const sortKey = $("lbSort").value;
+  let rows = LB.wallets.map(x=>{
+    const f = x.byFloor[floor] || {n:0,wins:0,inv:0,pnl:0,streak:0};
+    return {w:x.w, name:x.name, capped:x.capped, n:f.n, wins:f.wins,
+      hit:f.n?f.wins/f.n:0, inv:f.inv, pnl:f.pnl, roi:f.inv?f.pnl/f.inv:0, streak:f.streak};
+  }).filter(r=>r.n>=min);
+  rows.sort((a,b)=> sortKey==="roi"?b.roi-a.roi : sortKey==="hit"?b.hit-a.hit
+    : sortKey==="streak"?b.streak-a.streak : sortKey==="n"?b.n-a.n : b.pnl-a.pnl);
+  const body = rows.map((r,i)=>`
+    <tr><td class="num">${i+1}</td>
+    <td><a href="https://polymarket.com/profile/${r.w}" target="_blank" rel="noopener">${esc(r.name||r.w.slice(0,10)+"…")}</a>${r.capped?' <span class="cap" title="capped at 2000 positions; lower bound">*</span>':''}<div class="addr">${r.w}</div></td>
+    <td class="num">${r.n.toLocaleString()}</td>
+    <td class="num">${wrPill(r.hit)}</td>
+    <td class="num">${r.streak.toLocaleString()}</td>
+    <td class="num">${fmtUsd(r.inv)}</td>${pnlCell(r.pnl)}
+    <td class="num ${r.roi>=0?'pos':'neg'}">${fmtPct(r.roi)}</td></tr>`).join("");
+  $("lbResults").innerHTML = `
+    <p class="note">Hold-to-expiry, entry price ≥ ${floor}. <b>Longest streak</b> = most consecutive winning settled bets (in entry order). ${rows.length} wallets shown. <span class="cap">*</span> = data capped at 2,000 positions (lower bound).</p>
+    <table><thead><tr><th class="num">#</th><th>Wallet</th><th class="num">Bets</th><th class="num">Hit %</th><th class="num">Longest streak</th><th class="num">Invested</th><th class="num">Hold PnL</th><th class="num">ROI</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+["lbFloor","lbMin","lbSort"].forEach(id=>{
+  const el=$(id);
+  if(el){ el.addEventListener("change",renderLeaderboard); el.addEventListener("input",renderLeaderboard); }
+});
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("tab-active", b===btn));
+  const v = btn.dataset.view;
+  $("view-wallet").classList.toggle("hide", v!=="wallet");
+  $("view-leaderboard").classList.toggle("hide", v!=="leaderboard");
+  if(v==="leaderboard") loadLeaderboard();
+}));
 </script>
 </body>
 </html>
