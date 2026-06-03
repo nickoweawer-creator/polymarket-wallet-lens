@@ -50,7 +50,7 @@
   .truncate{max-width:430px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .foot{color:var(--muted);font-size:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:16px}
   .hide{display:none}
-  .tabs{display:flex;gap:8px;margin:4px 0 22px}
+  .tabs{display:flex;gap:8px;margin:4px 0 22px;flex-wrap:wrap}
   .tab{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-weight:600;border-radius:9px;padding:9px 16px;font-size:13px;cursor:pointer}
   .tab-active{background:var(--accent);color:#04101f;border-color:var(--accent)}
   .addr{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:2px}
@@ -70,11 +70,12 @@
 <body>
 <div class="wrap">
   <h1>Polymarket Wallet Lens</h1>
-  <p class="sub">Analyze one Polymarket wallet, or browse the leaderboard of systematic favorite-buyers. Pure client-side; reads public Polymarket data.</p>
+  <p class="sub">Analyze one Polymarket wallet, or browse sports and crypto leaderboards of systematic favorite-buyers. Pure client-side; reads public Polymarket data.</p>
 
   <nav class="tabs">
-    <button class="tab tab-active" data-view="wallet">Wallet analyzer</button>
-    <button class="tab" data-view="leaderboard">Leaderboard</button>
+    <button class="tab tab-active" data-view="wallet">Wallet Analyzer</button>
+    <button class="tab" data-view="sports">Sports Leaderboard</button>
+    <button class="tab" data-view="crypto">Crypto Leaderboard</button>
   </nav>
 
   <div id="view-wallet">
@@ -412,19 +413,33 @@ $("addr").addEventListener("keydown", (e)=>{ if(e.key==="Enter") run(); });
 $("demo").addEventListener("click", ()=>{ $("addr").value="0x204f72f35326db932158cba6adff0b9a1da95e14"; run(); });
 
 /* ---------- Leaderboard tab (per-bet dataset) ---------- */
+const LEADERBOARDS = {
+  sports: { file: "dataset.json", label: "Sports Leaderboard" },
+  crypto: { file: "crypto.json", label: "Crypto Leaderboard" },
+};
+let leaderboardKind = "sports";
 let DS = null, lbRows = null;
+const dsCache = {};
 const lbState = { sortKey:"pnl", sortDir:-1 };
-async function loadLeaderboard(){
-  if(DS) return;
+async function loadLeaderboard(kind = leaderboardKind){
+  leaderboardKind = kind;
+  DS = dsCache[kind] || null;
+  if(DS){
+    computeRows();
+    renderLeaderboard();
+    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} traders · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
+    return;
+  }
   $("lbStatus").textContent = "Loading dataset…";
   try{
-    const r = await fetch("dataset.json", {cache:"no-store"});
+    const r = await fetch(LEADERBOARDS[kind].file, {cache:"no-store"});
     if(!r.ok) throw new Error(String(r.status));
     DS = await r.json();
+    dsCache[kind] = DS;
     DS.wallets.forEach(w=>w.b.sort((a,b)=>a[3]-b[3]));          // time-sort once for streaks
     $("lbFloor").innerHTML = ["0.95","0.96","0.97","0.98","0.99"].map(f=>`<option ${f==="0.95"?"selected":""}>${f}</option>`).join("");
     $("lbCeil").innerHTML = ["0.96","0.97","0.98","0.99","1.00"].map(f=>`<option ${f==="1.00"?"selected":""}>${f}</option>`).join("");
-    $("lbStatus").textContent = `${DS.wallets.length} traders · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
+    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} traders · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
     computeRows(); renderLeaderboard();
   }catch(e){ DS=null; $("lbStatus").textContent = "Leaderboard data is still publishing — refresh in a minute."; }
 }
@@ -474,7 +489,7 @@ function renderLeaderboard(){
     <td class="num">${r.streak.toLocaleString()}</td><td class="num">${fmtNum(r.mstreak)}</td><td class="num">${fmtUsd(r.inv)}</td>${pnlCell(r.pnl)}
     <td class="num ${r.roi>=0?'pos':'neg'}">${fmtPct(r.roi)}</td></tr>`).join("");
   $("lbResults").innerHTML = `
-    <p class="note">Hold-to-expiry, entry price ${$("lbFloor").value}–${$("lbCeil").value}. ${rows.length} traders. <b>Click a column to sort</b>, <b>click a row to expand</b> its bucket / sport / market detail. Longest / median streak = consecutive wins. Edge = hit% − avg entry price. <span class="cap">*</span> = capped (lower bound).</p>
+    <p class="note">Hold-to-expiry, entry price ${$("lbFloor").value}–${$("lbCeil").value}. ${rows.length} traders. <b>Click a column to sort</b>, <b>click a row to expand</b> its bucket / ${(DS.groupLabel||"Group").toLowerCase()} / market detail. Longest / median streak = consecutive wins. Edge = hit% − avg entry price. <span class="cap">*</span> = capped (lower bound).</p>
     <table id="lbTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 function reinvestPanel(rec){
@@ -494,7 +509,7 @@ function toggleExpand(row){
   const nx=row.nextElementSibling;
   if(nx && nx.classList.contains("detail-row")){ nx.remove(); row.querySelector(".exp").textContent="▸"; return; }
   const rec=lbRows.find(r=>r.w===row.dataset.w); if(!rec) return;
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable("Sport",brk(rec.bets,4,DS.sports))}${detTable("Market type",brk(rec.bets,5,DS.types))}</td></tr>`;
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
@@ -510,8 +525,8 @@ document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("tab-active", b===btn));
   const v = btn.dataset.view;
   $("view-wallet").classList.toggle("hide", v!=="wallet");
-  $("view-leaderboard").classList.toggle("hide", v!=="leaderboard");
-  if(v==="leaderboard") loadLeaderboard();
+  $("view-leaderboard").classList.toggle("hide", v==="wallet");
+  if(v==="sports" || v==="crypto") loadLeaderboard(v);
 }));
 </script>
 </body>
