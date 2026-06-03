@@ -437,11 +437,11 @@ function computeRows(){
   const C = Math.round(parseFloat($("lbCeil").value)*10000);
   lbRows = DS.wallets.map(w=>{
     const bets = w.b.filter(x=>x[0]>=F && x[0]<=C);
-    let wins=0, inv=0, pnl=0;
-    for(const x of bets){ const p=x[0]/10000; if(x[1])wins++; inv+=p*x[2]; pnl+=x[2]*(x[1]-p); }
+    let wins=0, inv=0, pnl=0, sumP=0;
+    for(const x of bets){ const p=x[0]/10000; if(x[1])wins++; inv+=p*x[2]; pnl+=x[2]*(x[1]-p); sumP+=p; }
     const n=bets.length;
     return {w:w.w, name:w.name, capped:w.capped, n, wins, hit:n?wins/n:0, inv, pnl, roi:inv?pnl/inv:0,
-      streak:streakOf(bets,1), mstreak:median(winRuns(bets)), lstreak:streakOf(bets,0), bets};
+      avgp:n?sumP/n:0, streak:streakOf(bets,1), mstreak:median(winRuns(bets)), lstreak:streakOf(bets,0), bets};
   });
 }
 function brk(bets, idx, labels){
@@ -477,11 +477,24 @@ function renderLeaderboard(){
     <p class="note">Hold-to-expiry, entry price ${$("lbFloor").value}–${$("lbCeil").value}. ${rows.length} traders. <b>Click a column to sort</b>, <b>click a row to expand</b> its bucket / sport / market detail. Longest / median streak = consecutive wins. Edge = hit% − avg entry price. <span class="cap">*</span> = capped (lower bound).</p>
     <table id="lbTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
+function reinvestPanel(rec){
+  const p=rec.avgp||0, m=p>0?1/p:1;
+  const grow=k=>100*Math.pow(m,k);
+  const med=rec.mstreak, lon=rec.streak;
+  const endNote = rec.lstreak>0
+    ? `Reinvest-all means the streak-ending loss → <b>$0</b>. The median streak is how far you typically get first.`
+    : `No loss in this sample — but reinvest-all means the first loss (eventually) → <b>$0</b>.`;
+  return `<div class="detail-block"><table class="detail"><thead><tr><th>Reinvest \$100 (compounding)</th><th class="num">wins</th><th class="num">→ value</th></tr></thead><tbody>
+    <tr><td>through median streak</td><td class="num">${fmtNum(med)}</td><td class="num pos">${fmtUsd(grow(med))}</td></tr>
+    <tr><td>through longest streak</td><td class="num">${lon.toLocaleString()}</td><td class="num pos">${fmtUsd(grow(lon))}</td></tr>
+    <tr><td colspan="3" style="color:var(--muted);font-size:11px;white-space:normal;max-width:300px">avg entry ${p.toFixed(3)} → only <b>×${m.toFixed(4)}/win</b>. ${endNote}</td></tr>
+  </tbody></table></div>`;
+}
 function toggleExpand(row){
   const nx=row.nextElementSibling;
   if(nx && nx.classList.contains("detail-row")){ nx.remove(); row.querySelector(".exp").textContent="▸"; return; }
   const rec=lbRows.find(r=>r.w===row.dataset.w); if(!rec) return;
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${detTable("Price bucket",bucketBrk(rec.bets))}${detTable("Sport",brk(rec.bets,4,DS.sports))}${detTable("Market type",brk(rec.bets,5,DS.types))}</td></tr>`;
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable("Sport",brk(rec.bets,4,DS.sports))}${detTable("Market type",brk(rec.bets,5,DS.types))}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
