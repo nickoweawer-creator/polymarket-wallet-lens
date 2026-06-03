@@ -86,8 +86,9 @@
   <div id="results" class="hide"></div>
 
   <div class="foot">
-    Win = the outcome the wallet held resolved to 1 (<code>curPrice</code>). Only closed/resolved
-    positions are counted, so open trades don't inflate the number — this is the honest realized record.
+    Win = the position actually made money (<code>realizedPnl &gt; 0</code>) — real trading result, not just
+    whether the market resolved the wallet's way, so win rate and PnL stay consistent. A high win rate with
+    negative PnL is normal here: many small wins, a few large losses. Only closed positions count.
     Sport and bet type are inferred from market slugs. Data: <code>data-api.polymarket.com/closed-positions</code>.
   </div>
 </div>
@@ -171,8 +172,7 @@ function analyze(positions, {windowDays, floor}){
     const pnl = Number(p.realizedPnl)||0;
     const cp = Number(p.curPrice);
     if(!Number.isFinite(ap)) continue;
-    const resolved = cp===0 || cp===1;
-    if(!resolved) continue;                       // open / non-terminal — excluded
+    if(pnl === 0) continue;                        // breakeven / dust — neither a win nor a loss
     const end = p.endDate ? new Date(p.endDate).getTime() : (p.timestamp? Number(p.timestamp)*1000 : null);
     if(cutoff && end!=null && end < cutoff) continue;
     rows.push({
@@ -182,7 +182,7 @@ function analyze(positions, {windowDays, floor}){
       avgPrice: ap,
       invested: ap*shares,
       pnl,
-      win: cp===1,
+      win: pnl > 0,                                // win = actually made money, so win rate ↔ PnL agree
       sport: inferSport(p.slug||"", p.title||""),
       betType: inferBetType(p.slug||"", p.title||""),
       end,
