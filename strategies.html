@@ -113,6 +113,22 @@ const S=[
  {n:10,name:"Barbell: Core + Satellite",risk:3,riskTxt:"Balanced",mode:"barbell",
   desc:"80% Diversified Index (preservation) + 20% Fast Front-Run (convex upside). Satellite wins flow to core.",
   meta:"Copy: #3 + #7 · Reinvest: satellite→core, core withdraws > HWM · Edge: all-weather"},
+
+ {n:11,section:"Multi-Sport / Multi-Market",name:"Cross-Sport Diversified Copy",risk:3,riskTxt:"Low-medium",p:0.74,b:0.40,frac:0.02,mode:"kelly",kfrac:0.25,
+  desc:"Copy the best sharps across football, tennis, sports & crypto boards at once. Uncorrelated edge streams — a bad upset day in one sport barely dents the book.",
+  meta:"Copy: top wallet per board · Reinvest: ¼-Kelly, withdraw > HWM · Edge: diversified, de-correlated drawdowns"},
+ {n:12,section:null,name:"Cross-Sport Sharp Rotation",risk:2,riskTxt:"High",p:0.60,b:0.80,frac:0.04,mode:"compound",
+  desc:"Momentum-allocate: concentrate capital in whichever sport has the most/sharpest live signals right now (tennis during slams, football on matchday, crypto on events).",
+  meta:"Allocate: hottest-sport sharps · Reinvest: compound-in-band · Edge: chase liquidity/edge spikes (more variance)"},
+ {n:13,name:"Intra-Event Multi-Market Hedge",risk:3,riskTxt:"Low variance",p:0.80,b:0.14,lossB:0.40,frac:0.06,mode:"compound",
+  desc:"Within ONE event, pair a sharp's moneyline with your own totals/spread hedge to lock the edge and cut variance — a structured position, not a naked bet.",
+  meta:"Copy: moneyline sharp + self-hedge totals · Reinvest: compound · Edge: edge captured, downside capped by hedge"},
+ {n:14,name:"Cross-Market Lag Arbitrage",risk:2,riskTxt:"High (execution)",p:0.62,b:0.7,frac:0.04,mode:"kelly",kfrac:0.25,
+  desc:"When a sharp moves one market (moneyline), the related markets (totals, exact-score) must stay consistent — trade whichever lags before it catches up.",
+  meta:"Trade: lagging related market post-move · Reinvest: ¼-Kelly · Edge: cross-market consistency, latency-sensitive"},
+ {n:15,name:"Best-of-Breed Sport Ensemble",risk:3,riskTxt:"Medium",p:0.70,b:0.50,frac:0.03,mode:"kelly",kfrac:0.25,
+  desc:"One proven specialist per sport — tennis Sharp-bettor, football ⚡ front-runner, crypto top favorite-buyer — equal-weighted. Each in their domain of demonstrated edge.",
+  meta:"Copy: top specialist per sport · Reinvest: ¼-Kelly · Edge: best-of-breed, diversified alpha"},
 ];
 
 function edgeOf(s){ if(s.mode==="barbell") return 0.8*(0.932*1.075-1)+0.2*(0.55*2.0-1); return s.p*s.b-(1-s.p)*(s.lossB||1); }
@@ -220,6 +236,7 @@ function drawHist(cv,res){
 
 function renderCards(){
   document.getElementById("cards").innerHTML=S.map(s=>`
+    ${s.section?`<h2 style="margin:30px 0 4px;font-size:19px">${s.section}</h2><p class="sub" style="margin-bottom:10px">Span several sports/markets at once — diversification, rotation, hedging, and cross-market structure.</p>`:""}
     <div class="card" id="card${s.n}">
       <div class="top">
         <div><h2>${s.n}. ${s.name}</h2></div>
