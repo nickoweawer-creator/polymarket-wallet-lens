@@ -57,7 +57,7 @@
     <label class="field"><span>Sim paths</span><input id="paths" value="3000"></label>
     <label class="field"><span>Ruin threshold</span><input id="ruin" value="0.25"></label>
     <button id="runAll">Run all simulations</button>
-    <span class="note" id="seedNote">deterministic seed · re-run after changing inputs</span>
+    <span class="note" id="seedNote">deterministic seed · re-run after changing inputs · <b>click any table header to sort</b></span>
   </div>
 
   <table id="summary"><thead><tr>
@@ -129,6 +129,22 @@ const S=[
  {n:15,name:"Best-of-Breed Sport Ensemble",risk:3,riskTxt:"Medium",p:0.70,b:0.50,frac:0.03,mode:"kelly",kfrac:0.25,
   desc:"One proven specialist per sport — tennis Sharp-bettor, football ⚡ front-runner, crypto top favorite-buyer — equal-weighted. Each in their domain of demonstrated edge.",
   meta:"Copy: top specialist per sport · Reinvest: ¼-Kelly · Edge: best-of-breed, diversified alpha"},
+
+ {n:16,section:"YOLO / Maximum Aggression",name:"Full-Kelly Goal Tail",risk:1,riskTxt:"YOLO",p:0.66,b:0.667,frac:0.15,mode:"kelly",kfrac:1.0,
+  desc:"Strategy #6 sized at FULL Kelly. Maximizes geometric growth — and drawdowns. Same edge, 4× the bet size and 4× the swings.",
+  meta:"Copy: top Sharp Movers · Reinvest: full-Kelly compound · Edge: 10%/bet, max growth, brutal variance"},
+ {n:17,section:null,name:"Front-Run Parlay (½ bankroll)",risk:1,riskTxt:"YOLO",p:0.55,b:1.0,frac:0.5,mode:"compound",
+  desc:"Bet HALF the bankroll on each fast front-run signal, compound. Stacks wins exponentially; a couple of losses gut it. Pure send.",
+  meta:"Copy: ⚡ fast wallets · Reinvest: compound-all (½) · Edge: 10%/bet leveraged into a parlay"},
+ {n:18,name:"Longshot Sniper",risk:1,riskTxt:"YOLO",p:0.32,b:2.6,frac:0.06,mode:"kelly",kfrac:1.0,
+  desc:"Copy sharps' UNDERDOG bets (entry ~0.28). Low hit rate, big multiples on the winners. Long droughts, fat right tail.",
+  meta:"Copy: sharps backing underdogs · Reinvest: full-Kelly · Edge: +15%/bet, high-variance moonshots"},
+ {n:19,name:"2× Leveraged Sharp Rotation",risk:1,riskTxt:"YOLO",p:0.60,b:0.80,frac:0.12,mode:"compound",
+  desc:"Cross-sport rotation with the bet size cranked. Concentrate hard in the hottest sport and oversize. Big median, real blow-up tail.",
+  meta:"Allocate: hottest sport · Reinvest: compound 12%/bet · Edge: 8%/bet, leveraged"},
+ {n:20,name:"Degen Max-Edge (all-in-on-best)",risk:1,riskTxt:"YOLO",p:0.58,b:1.0,frac:0.16,mode:"kelly",kfrac:1.0,
+  desc:"No diversification: every bet is full-Kelly on the single highest-edge live signal. Max conviction, max torque.",
+  meta:"Copy: single best live edge · Reinvest: full-Kelly compound · Edge: 16%/bet concentrated"},
 ];
 
 function edgeOf(s){ if(s.mode==="barbell") return 0.8*(0.932*1.075-1)+0.2*(0.55*2.0-1); return s.p*s.b-(1-s.p)*(s.lossB||1); }
@@ -263,7 +279,7 @@ function runAll(){
     nbets:Math.max(10,Math.min(2000,+document.getElementById("nbets").value||200)),
     paths:Math.max(200,Math.min(20000,+document.getElementById("paths").value||3000)),
     ruin:Math.max(0,Math.min(0.99,+document.getElementById("ruin").value||0.25))};
-  const sumRows=[];
+  SUMMARY=[];
   S.forEach(s=>{
     const res=simStrategy(s,opts);
     document.getElementById("stats"+s.n).innerHTML=[
@@ -275,17 +291,33 @@ function runAll(){
     ].map(([k,v,c])=>`<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`).join("");
     drawCurves(document.getElementById("cv"+s.n),res,opts.nbets);
     drawHist(document.getElementById("hist"+s.n),res);
-    sumRows.push(`<tr class="clickable" onclick="document.getElementById('card${s.n}').scrollIntoView({behavior:'smooth'})">
-      <td class="num">${s.n}</td><td>${s.name}</td><td>${riskPill(s.risk)}</td>
-      <td class="num">${s.mode==="barbell"?"—":fmtPct(s.p)}</td>
-      <td class="num ${edgeOf(s)>=0?'pos':'neg'}">${(edgeOf(s)*100).toFixed(2)}%</td>
-      <td class="num ${res.median>=1?'pos':'neg'}">${fmtX(res.median)}</td>
-      <td class="num ${res.p5>=1?'pos':'neg'}">${fmtX(res.p5)}</td>
-      <td class="num pos">${fmtX(res.p95)}</td>
-      <td class="num ${res.ruin>0.2?'neg':res.ruin>0.05?'warn':'pos'}">${fmtPct(res.ruin)}</td></tr>`);
+    SUMMARY.push({n:s.n,name:s.name,risk:s.risk,win:s.mode==="barbell"?null:s.p,
+      edge:edgeOf(s),median:res.median,p5:res.p5,p95:res.p95,ruin:res.ruin});
   });
-  document.getElementById("summaryBody").innerHTML=sumRows.join("");
+  renderSummary();
 }
+let SUMMARY=[]; let sumSort={key:"median",dir:-1};
+function renderSummary(){
+  const cols=[["n","#"],["name","Strategy"],["risk","Risk"],["win","Win%"],["edge","Edge/bet"],
+    ["median","Median ×"],["p5","5th pct ×"],["p95","95th pct ×"],["ruin","Ruin %"]];
+  const {key,dir}=sumSort;
+  const rows=[...SUMMARY].sort((a,b)=>{const x=a[key],y=b[key];return typeof x==="string"?dir*x.localeCompare(y):dir*((x??-1)-(y??-1));});
+  const head=cols.map(([k,l])=>{const ar=k===key?(dir<0?" ▼":" ▲"):"";return `<th class="${k==="name"||k==="risk"?"":"num"} sortable" data-k="${k}" style="cursor:pointer;user-select:none">${l}${ar}</th>`;}).join("");
+  const body=rows.map(r=>`<tr class="clickable" onclick="document.getElementById('card${r.n}').scrollIntoView({behavior:'smooth'})">
+    <td class="num">${r.n}</td><td>${r.name}</td><td>${riskPill(r.risk)}</td>
+    <td class="num">${r.win==null?"—":fmtPct(r.win)}</td>
+    <td class="num ${r.edge>=0?'pos':'neg'}">${(r.edge*100).toFixed(2)}%</td>
+    <td class="num ${r.median>=1?'pos':'neg'}">${fmtX(r.median)}</td>
+    <td class="num ${r.p5>=1?'pos':'neg'}">${fmtX(r.p5)}</td>
+    <td class="num pos">${fmtX(r.p95)}</td>
+    <td class="num ${r.ruin>0.2?'neg':r.ruin>0.05?'warn':'pos'}">${fmtPct(r.ruin)}</td></tr>`).join("");
+  document.getElementById("summary").innerHTML=`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+}
+document.getElementById("summary").addEventListener("click",e=>{
+  const th=e.target.closest("th.sortable"); if(!th)return;
+  const k=th.dataset.k; if(sumSort.key===k)sumSort.dir*=-1; else {sumSort.key=k;sumSort.dir=(k==="name")?1:-1;}
+  renderSummary();
+});
 renderCards();
 document.getElementById("runAll").addEventListener("click",runAll);
 window.addEventListener("resize",()=>{ if(document.querySelector("#summaryBody tr")) runAll(); });
