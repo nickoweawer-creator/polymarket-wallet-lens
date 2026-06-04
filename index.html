@@ -76,6 +76,7 @@
     <button class="tab tab-active" data-view="wallet">Wallet Analyzer</button>
     <button class="tab" data-view="sports">Sports Leaderboard</button>
     <button class="tab" data-view="crypto">Crypto Leaderboard</button>
+    <button class="tab" data-view="tennis">Tennis Leaderboard</button>
     <button class="tab" data-view="sharp">Sharp Movers</button>
   </nav>
 
@@ -125,14 +126,18 @@
 
   <div id="view-sharp" class="hide">
     <div class="controls">
+      <label class="field"><span>Search handle / wallet</span>
+        <input id="spSearch" placeholder="e.g. ewww1, spffast, 0x…" style="min-width:240px" spellcheck="false" />
+      </label>
       <label class="field"><span>Show</span>
         <select id="spClass">
-          <option value="ALL" selected>All repeated bettors</option>
+          <option value="ALL" selected>All sharps</option>
           <option value="FAST">Fast money only (≤20s median)</option>
+          <option value="HOT">Hot (positive momentum)</option>
         </select>
       </label>
-      <label class="field"><span>Min hi-vol matches</span>
-        <input id="spMin" value="3" style="width:90px" />
+      <label class="field"><span>Min matches</span>
+        <input id="spMin" value="3" style="width:80px" />
       </label>
     </div>
     <div id="spStatus" class="status"></div>
@@ -433,6 +438,7 @@ $("demo").addEventListener("click", ()=>{ $("addr").value="0x204f72f35326db93215
 const LEADERBOARDS = {
   sports: { file: "dataset.json", label: "Sports Leaderboard" },
   crypto: { file: "crypto.json", label: "Crypto Leaderboard" },
+  tennis: { file: "tennis.json", label: "Tennis Leaderboard" },
 };
 const leaderboardCountLabel = kind => kind === "crypto" ? "active wallets" : "traders";
 let leaderboardKind = "sports";
@@ -441,7 +447,7 @@ const dsCache = {};
 const lbState = { sortKey:"pnl", sortDir:-1 };
 async function loadLeaderboard(kind = leaderboardKind){
   leaderboardKind = kind;
-  $("lbMin").value = kind === "crypto" ? "1" : "100";
+  $("lbMin").value = kind === "crypto" ? "1" : kind === "tennis" ? "15" : "100";
   DS = dsCache[kind] || null;
   if(DS){
     computeRows();
@@ -594,7 +600,7 @@ $("lbCeil").addEventListener("change",()=>{ computeRows(); renderLeaderboard(); 
 $("lbMin").addEventListener("input",renderLeaderboard);
 /* ---------- Sharp Movers tab (pre-breakout front-runners on $100k+ matches) ---------- */
 let SHARP = null;
-const spState = { sortKey:"matches", sortDir:-1 };
+const spState = { sortKey:"score", sortDir:-1 };
 async function loadSharp(){
   if(SHARP){ renderSharp(); return; }
   $("spStatus").textContent = "Loading sharp movers…";
@@ -607,54 +613,57 @@ async function loadSharp(){
 }
 function renderSharp(){
   if(!SHARP) return;
-  const onlyFast = $("spClass").value === "FAST";
+  const cls = $("spClass").value;
   const min = Math.max(0, Number($("spMin").value)||0);
+  const q = ($("spSearch").value||"").trim().toLowerCase();
   const {sortKey,sortDir} = spState;
-  let rows = SHARP.wallets.filter(r => (!onlyFast || r.cls==="FAST") && r.matches>=min);
+  let rows = SHARP.wallets.filter(r =>
+    (cls==="ALL" || (cls==="FAST" && r.medLead<=20) || (cls==="HOT" && r.hot))
+    && r.matches>=min
+    && (!q || (r.name||"").toLowerCase().includes(q) || (r.pseudo||"").toLowerCase().includes(q) || r.wallet.toLowerCase().includes(q)));
   const v = r => sortKey==="w" ? (r.name||r.wallet) : r[sortKey];
   rows.sort((a,b)=>{ const x=v(a),y=v(b); return (typeof x==="string")?sortDir*x.localeCompare(y):sortDir*((x||0)-(y||0)); });
   const c=SHARP.corpus;
-  $("spStatus").innerHTML = `${SHARP.total} repeated bettors (≥3 matches) · ${SHARP.fastCount} fast-money · `
-    + `${c.windowSec||60}s pre-move window · corpus: ${c.matches} matches >$${(c.minVolumeUsd/1000)|0}k, `
-    + `${c.breakoutJumps.toLocaleString()} repricings, ${(c.trades/1000|0)}k trades · generated ${new Date(SHARP.generatedAt).toLocaleDateString()}`;
-  const cols=[["rank","#"],["w","Wallet"],["cls","Class"],["matches","Hi-vol matches"],
-    ["buys","Pre-move buys"],["medLead","Median lead"],["minLead","Min lead"],
-    ["size","Shares early"],["edge","Est. edge"]];
-  const head=cols.map(([k,l])=>{ const a=k===sortKey?(sortDir<0?" ▼":" ▲"):""; return `<th class="${k==="w"||k==="cls"?"":"num"}${k!=="rank"?" sortable":""}" data-k="${k}">${l}${a}</th>`; }).join("");
-  const body=rows.map((r,i)=>`
+  $("spStatus").innerHTML = `${SHARP.total.toLocaleString()} systematic front-runners · ${SHARP.fastCount} fast (≤20s) · `
+    + `${c.windowSec||60}s pre-move window · corpus: <b>all football</b> ${c.matches.toLocaleString()} matches >$${(c.minVolumeUsd/1000)|0}k, `
+    + `${c.breakoutJumps.toLocaleString()} repricings, ${(c.trades/1e6).toFixed(1)}M trades · generated ${new Date(SHARP.generatedAt).toLocaleDateString()}`;
+  const cols=[["rank","#"],["w","Wallet"],["score","Sharp score"],["matches","Matches"],
+    ["medLead","Med lead"],["hitRate","Hit %"],["avgEdge","Avg edge"],["sharpRoi","ROI"],["sharpPnl","Sharp PnL"]];
+  const head=cols.map(([k,l])=>{ const a=k===sortKey?(sortDir<0?" ▼":" ▲"):""; return `<th class="${k==="w"?"":"num"}${k!=="rank"?" sortable":""}" data-k="${k}">${l}${a}</th>`; }).join("");
+  const badge=r=>`${r.medLead<=10?'<span class="pill pos" title="≤10s median lead">⚡</span> ':''}${r.hot?'<span class="pill pos" title="positive 30d momentum">🔥</span> ':''}`;
+  const body=rows.slice(0,1000).map((r,i)=>`
     <tr class="lb-row" data-w="${r.wallet}" title="Click to analyze this wallet">
       <td class="num">${i+1}</td>
-      <td><a href="https://polymarket.com/profile/${r.wallet}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(r.name||r.wallet.slice(0,10)+"…")}</a><div class="addr">${r.wallet}</div></td>
-      <td>${r.cls==="FAST"?'<span class="pill pos">FAST</span>':'<span class="pill">sharp</span>'}</td>
+      <td>${badge(r)}<a href="https://polymarket.com/profile/${r.wallet}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(r.name||r.pseudo||r.wallet.slice(0,10)+"…")}</a><div class="addr">${r.wallet}</div></td>
+      <td class="num"><b>${r.score.toFixed(2)}</b></td>
       <td class="num">${r.matches}</td>
-      <td class="num">${r.buys}</td>
       <td class="num">${r.medLead}s</td>
-      <td class="num">${r.minLead}s</td>
-      <td class="num">${r.size.toLocaleString()}</td>
-      <td class="num pos">${fmtUsd(r.edge)}</td>
+      <td class="num">${wrPill(r.hitRate)}</td>
+      <td class="num">${(r.avgEdge*100).toFixed(1)}%</td>
+      <td class="num ${r.sharpRoi>=0?'pos':'neg'}">${(r.sharpRoi*100).toFixed(0)}%</td>${pnlCell(r.sharpPnl)}
     </tr>`).join("") || `<tr><td colspan="9" style="color:var(--muted)">No wallets match the filter.</td></tr>`;
   $("spResults").innerHTML = `
-    <p class="note"><b>Repeated bettors</b> who bought the winning side within <b>60s before the goal hit the price</b> (the breakout tick — first trade that escapes the pre-jump range) on Polymarket football markets with >$100k volume. Ranked by how many distinct matches they did it in — i.e. wallets that are <i>systematically</i> ahead of the move, not the cascade.
-    <b>FAST</b> = median lead ≤20s. Lead is seconds before the breakout; lower = sharper. <b>Click a column to sort, click a row to analyze that wallet.</b></p>
+    <p class="note">Wallets that bought the winning side within <b>60s before the goal hit the price</b> (the breakout tick) across <b>all $100k+ football</b> (6 months, every league). <b>Sharp Score</b> blends edge, speed, reliability, sharp-trade ROI &amp; momentum (z-scored, shrunk for sample size &amp; staleness). ⚡=≤10s lead, 🔥=hot last-30d. <b>Click a column to sort, click a row to analyze the wallet.</b></p>
     <table id="spTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
-    <p class="note" style="margin-top:10px">Caveat: this is a front-running <i>frequency</i> signal, not verified P&amp;L (losing bets aren't netted). Repeated 1–5s leads across many matches are the strongest evidence of a low-latency data edge. Use the Wallet Analyzer to check a wallet's actual hold-to-expiry record.</p>`;
+    <p class="note" style="margin-top:10px">Hit %, Avg edge, ROI &amp; Sharp PnL are computed <b>on the front-run trades only</b> (entry → final resolution). Sort by <b>Matches</b> for breadth, <b>Sharp PnL</b> for absolute profit. Showing top ${Math.min(rows.length,1000).toLocaleString()} of ${rows.length.toLocaleString()} matches.</p>`;
 }
 $("spResults").addEventListener("click",(e)=>{
   const th=e.target.closest("th.sortable");
-  if(th){ const k=th.dataset.k; if(spState.sortKey===k) spState.sortDir*=-1; else { spState.sortKey=k; spState.sortDir=(k==="w"||k==="cls")?1:-1; } renderSharp(); return; }
+  if(th){ const k=th.dataset.k; if(spState.sortKey===k) spState.sortDir*=-1; else { spState.sortKey=k; spState.sortDir=(k==="w")?1:-1; } renderSharp(); return; }
   const row=e.target.closest("tr.lb-row");
   if(row){ $("addr").value=row.dataset.w; document.querySelector('.tab[data-view="wallet"]').click(); run(); }
 });
 $("spClass").addEventListener("change",renderSharp);
 $("spMin").addEventListener("input",renderSharp);
+$("spSearch").addEventListener("input",renderSharp);
 
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("tab-active", b===btn));
   const v = btn.dataset.view;
   $("view-wallet").classList.toggle("hide", v!=="wallet");
-  $("view-leaderboard").classList.toggle("hide", !(v==="sports" || v==="crypto"));
+  $("view-leaderboard").classList.toggle("hide", !(v==="sports" || v==="crypto" || v==="tennis"));
   $("view-sharp").classList.toggle("hide", v!=="sharp");
-  if(v==="sports" || v==="crypto") loadLeaderboard(v);
+  if(v==="sports" || v==="crypto" || v==="tennis") loadLeaderboard(v);
   if(v==="sharp") loadSharp();
 }));
 </script>
