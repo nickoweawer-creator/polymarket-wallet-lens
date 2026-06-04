@@ -517,10 +517,15 @@ function brk(bets, idx, labels){
   for(const x of bets){ const k=x[idx]; const g=m.get(k)||{n:0,wins:0,psum:0,pnl:0}; g.n++; if(x[1])g.wins++; g.psum+=x[0]/10000; g.pnl+=x[2]*(x[1]-x[0]/10000); m.set(k,g); }
   return [...m.entries()].map(([k,g])=>({label:labels?labels[k]:k, n:g.n, hit:g.wins/g.n, edge:g.wins/g.n-g.psum/g.n, pnl:g.pnl})).sort((a,b)=>b.n-a.n);
 }
-function bucketBrk(bets){
+function bucketBrk(bets, wide){
   const m=new Map();
-  for(const x of bets){ const lo=Math.floor(x[0]/100); const g=m.get(lo)||{n:0,wins:0,psum:0,pnl:0}; g.n++; if(x[1])g.wins++; g.psum+=x[0]/10000; g.pnl+=x[2]*(x[1]-x[0]/10000); m.set(lo,g); }
-  return [...m.entries()].sort((a,b)=>a[0]-b[0]).map(([lo,g])=>({label:`0.${lo}`, n:g.n, hit:g.wins/g.n, edge:g.wins/g.n-g.psum/g.n, pnl:g.pnl}));
+  for(const x of bets){
+    const k = wide ? Math.min(9,Math.floor(x[0]/1000)) : Math.floor(x[0]/100);
+    const g=m.get(k)||{n:0,wins:0,psum:0,pnl:0}; g.n++; if(x[1])g.wins++; g.psum+=x[0]/10000; g.pnl+=x[2]*(x[1]-x[0]/10000); m.set(k,g);
+  }
+  return [...m.entries()].sort((a,b)=>a[0]-b[0]).map(([k,g])=>({
+    label: wide ? `${k*10}–${k*10+10}` : `0.${k}`,
+    n:g.n, hit:g.wins/g.n, edge:g.wins/g.n-g.psum/g.n, pnl:g.pnl}));
 }
 function detTable(head, rows){
   const body=rows.map(r=>`<tr><td>${esc(String(r.label))}</td><td class="num">${r.n}</td><td class="num">${(100*r.hit).toFixed(1)}%</td><td class="num ${r.edge>=0?'pos':'neg'}">${r.edge>=0?'+':''}${(100*r.edge).toFixed(2)}%</td><td class="num ${r.pnl>=0?'pos':'neg'}">${fmtSigned(r.pnl)}</td></tr>`).join("");
@@ -628,7 +633,7 @@ function toggleExpand(row){
         <tr><td>Trading alpha (realized − hold)</td><td class="num ${(rec.realized-rec.pnl)>=0?'pos':'neg'}">${fmtSigned(rec.realized-rec.pnl)}</td></tr>
        </tbody></table></div>`
     : "";
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${stylePanel}${streakPanel(rec)}${reinvestPanel(rec)}${timeframeBlock}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${stylePanel}${streakPanel(rec)}${reinvestPanel(rec)}${timeframeBlock}${detTable(leaderboardKind==="tennis"?"Price bucket (¢)":"Price bucket",bucketBrk(rec.bets,leaderboardKind==="tennis"))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
