@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Polymarket Copy-Trading Strategies — Monte Carlo</title>
+<style>
+  :root{--bg:#0b0d10;--panel:#14181d;--panel2:#1a1f26;--line:#262d36;--ink:#e7ecf2;
+    --muted:#8a97a6;--pos:#3fb950;--neg:#f85149;--accent:#4493f8;--warn:#d29922;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:25px;letter-spacing:-.02em;margin:0 0 2px}
+  h2{font-size:16px;margin:0}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:13px}
+  .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:20px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field span{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px;outline:none;width:110px}
+  button{background:var(--accent);border:none;color:#04101f;font-weight:700;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:22px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
+  tbody tr:last-child td{border-bottom:none}
+  tr.clickable{cursor:pointer} tr.clickable:hover{background:var(--panel2)}
+  .pos{color:var(--pos)}.neg{color:var(--neg)}.warn{color:var(--warn)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:18px}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .pill{border-radius:20px;padding:2px 10px;font-weight:700;font-size:12px}
+  .r1{background:#2a1416;color:#ff8a80}.r2{background:#2a2014;color:#ffce80}.r3{background:#142a1c;color:#7ee2a8}.r4{background:#14202a;color:#80c4ff}
+  .desc{color:var(--ink);font-size:13.5px;margin:8px 0 4px}
+  .meta{color:var(--muted);font-size:12px;margin:2px 0 12px}
+  .params{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:12px}
+  .params b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  canvas{width:100%;height:200px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:12px 0}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .stat .k{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .stat .v{font-size:17px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+  .foot{color:var(--muted);font-size:12px;margin-top:36px;border-top:1px solid var(--line);padding-top:16px}
+  .note{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Polymarket Copy-Trading Strategies</h1>
+  <p class="sub">10 strategies from pure gamble to HFT-grade alpha, each with a Monte Carlo simulation of bankroll outcomes. Parameters are modelled estimates from the leaderboard/Sharp-Movers metrics — tune them. <a href="./">← Wallet Lens</a></p>
+
+  <div class="controls">
+    <label class="field"><span>Start bankroll $</span><input id="bank" value="1000"></label>
+    <label class="field"><span>Bets / horizon</span><input id="nbets" value="200"></label>
+    <label class="field"><span>Sim paths</span><input id="paths" value="3000"></label>
+    <label class="field"><span>Ruin threshold</span><input id="ruin" value="0.25"></label>
+    <button id="runAll">Run all simulations</button>
+    <span class="note" id="seedNote">deterministic seed · re-run after changing inputs</span>
+  </div>
+
+  <table id="summary"><thead><tr>
+    <th>#</th><th>Strategy</th><th>Risk</th><th class="num">Win%</th><th class="num">Edge/bet</th>
+    <th class="num">Median ×</th><th class="num">5th pct ×</th><th class="num">95th pct ×</th><th class="num">Ruin %</th>
+  </tr></thead><tbody id="summaryBody"></tbody></table>
+
+  <div id="cards"></div>
+
+  <div class="foot">
+    <b>Model:</b> each bet wins with prob <i>p</i> returning <i>b</i> per $1 staked (net odds from entry price), else loses the stake.
+    Sizing per strategy: fixed-fraction, compound, ¼-Kelly, or all-in. Edge/bet = <code>p·(1+b) − 1</code>.
+    Monte Carlo runs the configured paths × horizon with a seeded PRNG. <b>This is a model, not a backtest</b> — favorite-buying is modelled near-fair
+    (thin edge, as the data shows), sharp/front-run strategies carry a small positive edge, market-making earns spread at low variance.
+    Real results depend on copy latency, slippage, liquidity, and whether the copied wallet's edge persists.
+  </div>
+</div>
+
+<script>
+// ---------- seeded PRNG (mulberry32) ----------
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+// ---------- strategies (modelled params) ----------
+// p=win prob, b=net odds (profit per $1 on win), frac=bet size, mode, special
+const S=[
+ {n:1,name:"All-In Favorite Compounder",risk:1,riskTxt:"Pure gamble",p:0.97,b:0.031,frac:1.0,mode:"allin",
+  desc:"Reinvest 100% of bankroll on one hot favorite-buyer's ≥0.95 bets. Compounding parlay — moonshot or zero.",
+  meta:"Copy: single top streak wallet · Reinvest: compound-all · Edge: none (favorite premium + luck)"},
+ {n:2,name:"Streak Rider + Stop-Loss",risk:1,riskTxt:"Very high",p:0.972,b:0.031,frac:0.02,mode:"compound",stopLossStreak:3,
+  desc:"Flat 2% on top streak-leaders' ≥0.97 bets; halt after 3 straight losses (upsets cluster).",
+  meta:"Copy: top-5 by streak · Reinvest: compound, reset on loss · Edge: thin favorite skill"},
+ {n:3,name:"Diversified Favorite Index",risk:3,riskTxt:"Low-medium",p:0.932,b:0.075,frac:0.0025,mode:"fixed",
+  desc:"0.25% across top-50 favorite-buyers, all sports. Hundreds of high-prob bets — variance averaged out.",
+  meta:"Copy: 50 favorite-buyers · Reinvest: withdraw > HWM (modelled fixed) · Edge: tiny, diversified"},
+ {n:4,name:"Multi-Wallet Consensus",risk:3,riskTxt:"Medium",p:0.87,b:0.176,frac:0.03,mode:"kelly",kfrac:0.25,
+  desc:"Enter only when ≥3 sharps back the same outcome. Consensus filters luck; size by confirming count.",
+  meta:"Copy: cross-leaderboard consensus · Reinvest: ¼-Kelly · Edge: agreement of independent sharps"},
+ {n:5,name:"Tennis Sharp-Bettor Copy",risk:3,riskTxt:"Medium",p:0.83,b:0.25,frac:0.03,mode:"kelly",kfrac:0.25,
+  desc:"Mirror only Type=Sharp bettor (positive edge, holds). Exclude Market makers — their PnL is spread, not skill.",
+  meta:"Copy: tennis Sharp bettors · Reinvest: ¼-Kelly · Edge: real predictive tennis skill (+3pp)"},
+ {n:6,name:"Sharp-Mover Goal Tail",risk:2,riskTxt:"High (slippage)",p:0.66,b:0.667,frac:0.04,mode:"compound",
+  desc:"Mirror top Sharp Movers' 60s pre-breakout football buys. Captures part of the move — if you fill fast.",
+  meta:"Copy: top-50 Sharp Score · Reinvest: compound-in-band · Edge: shared latency edge minus slippage"},
+ {n:7,name:"Fast-Money Front-Run Mirror",risk:1,riskTxt:"Top alpha / HFT",p:0.55,b:1.0,frac:0.05,mode:"kelly",kfrac:0.25,
+  desc:"Real-time auto-copy of ⚡≤10s wallets (in-venue feed crowd). Sub-2s execution. Highest alpha, highest infra.",
+  meta:"Copy: ⚡ fast wallets · Reinvest: fixed-fraction Kelly · Edge: piggyback genuine low-latency data edge"},
+ {n:8,name:"Market-Maker Shadow",risk:3,riskTxt:"Low directional",p:0.82,b:0.015,lossB:0.04,frac:0.10,mode:"compound",
+  desc:"Quote both sides of liquid markets, harvest spread, stay ~delta-neutral. Earn bid-ask × volume, not picks.",
+  meta:"Replicate: MM wallets (high two-sided%, churn) · Reinvest: compound · Edge: spread, market-neutral"},
+ {n:9,name:"Fractional-Kelly Edge Stacker",risk:3,riskTxt:"Quant-optimal",p:0.70,b:0.45,frac:0.03,mode:"kelly",kfrac:0.25,
+  desc:"¼-Kelly on each measured-edge signal across all boards, capped & correlation-adjusted. Optimal growth.",
+  meta:"Copy: any measured edge · Reinvest: Kelly, withdraw >2×HWM · Edge: basket of small edges"},
+ {n:10,name:"Barbell: Core + Satellite",risk:3,riskTxt:"Balanced",mode:"barbell",
+  desc:"80% Diversified Index (preservation) + 20% Fast Front-Run (convex upside). Satellite wins flow to core.",
+  meta:"Copy: #3 + #7 · Reinvest: satellite→core, core withdraws > HWM · Edge: all-weather"},
+];
+
+function edgeOf(s){ if(s.mode==="barbell") return 0.8*(0.932*1.075-1)+0.2*(0.55*2.0-1); return s.p*s.b-(1-s.p)*(s.lossB||1); }
+
+function simStrategy(s,opts){
+  const {bank,nbets,paths,ruin}=opts;
+  const finals=new Float64Array(paths);
+  const curves=[]; // sample equity curves
+  const SAMPLE=Math.min(36,paths);
+  const r=rng(0x9e3779b9 ^ (s.n*2654435761));
+  for(let pth=0;pth<paths;pth++){
+    let bk=bank, dead=false, lossStreak=0;
+    const keep=pth<SAMPLE; const curve=keep?[bk]:null;
+    // barbell: split capital
+    let core=bk*0.8, sat=bk*0.2;
+    for(let i=0;i<nbets;i++){
+      if(s.mode==="barbell"){
+        // core: index, sat: fast front-run
+        core = stepOnce(core,{p:0.932,b:0.075,frac:0.0025,mode:"fixed",base:bank*0.8},r);
+        const before=sat;
+        sat = stepOnce(sat,{p:0.585,b:1.0,frac:0.3*( (0.585*2-1)/1.0 ),mode:"compound"},r);
+        if(sat>before*1.0 && sat>bank*0.2){ const gain=sat-bank*0.2; core+=gain; sat=bank*0.2; } // sweep satellite wins to core
+        bk=core+sat;
+      } else if(s.mode==="allin"){
+        if(r()<s.p) bk*=(1+s.b); else { bk=0; dead=true; }
+      } else if(s.stopLossStreak && lossStreak>=s.stopLossStreak){
+        // halted after loss-streak: bankroll frozen for the rest of the horizon
+      } else {
+        let frac=s.frac;
+        if(s.mode==="kelly"){ const e=s.p*(1+s.b)-1; const k=Math.max(0,e/s.b); frac=Math.min(0.25,(s.kfrac||0.25)*k); }
+        let stake = s.mode==="fixed" ? bank*frac : bk*frac;
+        stake=Math.min(stake,bk);
+        if(r()<s.p){ bk+=stake*s.b; lossStreak=0; } else { bk-=stake*(s.lossB||1); lossStreak++; }
+        if(bk<=0){bk=0;dead=true;}
+      }
+      if(bk<=0){bk=0;dead=true;}
+      if(keep) curve.push(bk);
+      if(dead && s.mode==="allin") { if(keep) while(curve.length<=nbets)curve.push(0); break; }
+    }
+    finals[pth]=bk;
+    if(keep) curves.push(curve);
+  }
+  return summarize(finals,curves,bank,ruin);
+}
+
+// single-step helper for fixed/compound sub-strategies (used by barbell)
+function stepOnce(bk,s,r){
+  if(bk<=0)return 0;
+  let stake = s.mode==="fixed" ? (s.base*s.frac) : bk*s.frac;
+  stake=Math.min(stake,bk);
+  if(r()<s.p) return bk+stake*s.b; else return Math.max(0,bk-stake);
+}
+
+function summarize(finals,curves,bank,ruin){
+  const arr=Array.from(finals).sort((a,b)=>a-b);
+  const q=p=>arr[Math.min(arr.length-1,Math.floor(p*arr.length))];
+  const mean=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const ruined=arr.filter(x=>x<bank*ruin).length/arr.length;
+  return {median:q(0.5)/bank,p5:q(0.05)/bank,p95:q(0.95)/bank,mean:mean/bank,ruin:ruined,curves,bank};
+}
+
+// ---------- rendering ----------
+const fmtX=v=> v>=100?(v).toFixed(0)+"×" : v>=10?v.toFixed(1)+"×" : v.toFixed(2)+"×";
+const fmtPct=v=>(v*100).toFixed(1)+"%";
+function riskPill(r){const c=["","r1","r2","r3","r4"][r];const t=["","gamble","high","medium","low"][r];return `<span class="pill ${c}">${t}</span>`;}
+
+function drawCurves(cv,res,nbets){
+  const ctx=cv.getContext("2d"),W=cv.width=cv.clientWidth*2,H=cv.height=cv.clientHeight*2;
+  ctx.scale(1,1);ctx.clearRect(0,0,W,H);
+  // log scale y between p1 and p99 of all curve points
+  let lo=Infinity,hi=-Infinity;
+  res.curves.forEach(c=>c.forEach(v=>{const x=Math.max(v,res.bank*1e-3);lo=Math.min(lo,x);hi=Math.max(hi,x);}));
+  lo=Math.max(lo,res.bank*1e-3); if(hi<=lo)hi=lo*10;
+  const ly=v=>{const x=Math.max(v,res.bank*1e-3);return H-(Math.log(x)-Math.log(lo))/(Math.log(hi)-Math.log(lo))*H*0.92-H*0.04;};
+  const lx=i=>i/(nbets)*W;
+  // baseline (start bankroll)
+  ctx.strokeStyle="#3a4452";ctx.lineWidth=2;ctx.setLineDash([6,6]);
+  ctx.beginPath();ctx.moveTo(0,ly(res.bank));ctx.lineTo(W,ly(res.bank));ctx.stroke();ctx.setLineDash([]);
+  res.curves.forEach(c=>{
+    const up=c[c.length-1]>=res.bank;
+    ctx.strokeStyle=up?"rgba(63,185,80,0.5)":"rgba(248,81,73,0.45)";ctx.lineWidth=1.2;
+    ctx.beginPath();c.forEach((v,i)=>{i?ctx.lineTo(lx(i),ly(v)):ctx.moveTo(lx(i),ly(v));});ctx.stroke();
+  });
+}
+function drawHist(cv,res){
+  const ctx=cv.getContext("2d"),W=cv.width=cv.clientWidth*2,H=cv.height=cv.clientHeight*2;
+  ctx.clearRect(0,0,W,H);
+  const vals=res.curves.map(c=>c[c.length-1]/res.bank); // sample finals (multiples)
+  // use log-multiple bins from p5..p95 across full set is unavailable here; bin sample
+  const lm=vals.map(v=>Math.log10(Math.max(v,1e-3)));
+  let lo=Math.min(...lm,-0.3),hi=Math.max(...lm,0.3);if(hi-lo<0.5){hi+=0.3;lo-=0.3;}
+  const B=24,bins=new Array(B).fill(0);
+  lm.forEach(x=>{let k=Math.floor((x-lo)/(hi-lo)*B);k=Math.max(0,Math.min(B-1,k));bins[k]++;});
+  const mx=Math.max(...bins,1);
+  bins.forEach((c,k)=>{
+    const x0=k/B*W,bw=W/B*0.86,h=c/mx*H*0.9;
+    const center=lo+(k+0.5)/B*(hi-lo);
+    ctx.fillStyle=center>=0?"rgba(63,185,80,0.7)":"rgba(248,81,73,0.7)";
+    ctx.fillRect(x0+bw*0.07,H-h,bw,h);
+  });
+  // 1x line
+  const zx=(0-lo)/(hi-lo)*W;
+  ctx.strokeStyle="#3a4452";ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(zx,0);ctx.lineTo(zx,H);ctx.stroke();ctx.setLineDash([]);
+}
+
+function renderCards(){
+  document.getElementById("cards").innerHTML=S.map(s=>`
+    <div class="card" id="card${s.n}">
+      <div class="top">
+        <div><h2>${s.n}. ${s.name}</h2></div>
+        ${riskPill(s.risk)}
+      </div>
+      <div class="desc">${s.desc}</div>
+      <div class="meta">${s.meta}</div>
+      <div class="params">
+        <div>win <b>${s.mode==="barbell"?"—":fmtPct(s.p)}</b></div>
+        <div>net odds <b>${s.mode==="barbell"?"—":s.b.toFixed(2)}</b></div>
+        <div>edge/bet <b class="${edgeOf(s)>=0?'pos':'neg'}">${(edgeOf(s)*100).toFixed(2)}%</b></div>
+        <div>sizing <b>${s.mode}</b></div>
+      </div>
+      <div class="stats" id="stats${s.n}"><span class="note">Run to simulate…</span></div>
+      <div class="grid">
+        <div><div class="note" style="margin-bottom:4px">Equity curves (log, ${36} sample paths)</div><canvas id="cv${s.n}"></canvas></div>
+        <div><div class="note" style="margin-bottom:4px">Final outcome distribution (× start, log)</div><canvas id="hist${s.n}"></canvas></div>
+      </div>
+    </div>`).join("");
+}
+
+function runAll(){
+  const opts={bank:+document.getElementById("bank").value||1000,
+    nbets:Math.max(10,Math.min(2000,+document.getElementById("nbets").value||200)),
+    paths:Math.max(200,Math.min(20000,+document.getElementById("paths").value||3000)),
+    ruin:Math.max(0,Math.min(0.99,+document.getElementById("ruin").value||0.25))};
+  const sumRows=[];
+  S.forEach(s=>{
+    const res=simStrategy(s,opts);
+    document.getElementById("stats"+s.n).innerHTML=[
+      ["Median",fmtX(res.median),res.median>=1?'pos':'neg'],
+      ["Mean",fmtX(res.mean),res.mean>=1?'pos':'neg'],
+      ["5th pct",fmtX(res.p5),res.p5>=1?'pos':'neg'],
+      ["95th pct",fmtX(res.p95),'pos'],
+      ["Ruin <"+(opts.ruin*100)+"%",fmtPct(res.ruin),res.ruin>0.2?'neg':res.ruin>0.05?'warn':'pos'],
+    ].map(([k,v,c])=>`<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`).join("");
+    drawCurves(document.getElementById("cv"+s.n),res,opts.nbets);
+    drawHist(document.getElementById("hist"+s.n),res);
+    sumRows.push(`<tr class="clickable" onclick="document.getElementById('card${s.n}').scrollIntoView({behavior:'smooth'})">
+      <td class="num">${s.n}</td><td>${s.name}</td><td>${riskPill(s.risk)}</td>
+      <td class="num">${s.mode==="barbell"?"—":fmtPct(s.p)}</td>
+      <td class="num ${edgeOf(s)>=0?'pos':'neg'}">${(edgeOf(s)*100).toFixed(2)}%</td>
+      <td class="num ${res.median>=1?'pos':'neg'}">${fmtX(res.median)}</td>
+      <td class="num ${res.p5>=1?'pos':'neg'}">${fmtX(res.p5)}</td>
+      <td class="num pos">${fmtX(res.p95)}</td>
+      <td class="num ${res.ruin>0.2?'neg':res.ruin>0.05?'warn':'pos'}">${fmtPct(res.ruin)}</td></tr>`);
+  });
+  document.getElementById("summaryBody").innerHTML=sumRows.join("");
+}
+renderCards();
+document.getElementById("runAll").addEventListener("click",runAll);
+window.addEventListener("resize",()=>{ if(document.querySelector("#summaryBody tr")) runAll(); });
+runAll();
+</script>
+</body>
+</html>
