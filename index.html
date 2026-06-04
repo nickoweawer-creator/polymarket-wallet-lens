@@ -573,10 +573,14 @@ function toggleExpand(row){
   const nx=row.nextElementSibling;
   if(nx && nx.classList.contains("detail-row")){ nx.remove(); row.querySelector(".exp").textContent="▸"; return; }
   const rec=lbRows.find(r=>r.w===row.dataset.w); if(!rec) return;
+  const TF_FRIENDLY={"5m":"5 min","15m":"15 min","30m":"30 min","1h":"1 hour","4h":"4 hours",
+    "12h":"12 hours","Daily":"Daily (24h) price","Weekly":"Weekly price","Monthly":"Monthly price",
+    "Quarterly+":"Quarterly+ price","Other":"Other"};
+  const tfLabels=(DS.timeframes||[]).map(t=>TF_FRIENDLY[t]||t);
   const timeframeBlock = Array.isArray(DS.timeframes) && rec.bets.some(b=>typeof b[6]==="number" && b[6] >= 0)
-    ? detTable("Market timeframe", brk(rec.bets.filter(b=>typeof b[6]==="number" && b[6] >= 0),6,DS.timeframes))
+    ? detTable("Market timeframe (price window)", brk(rec.bets.filter(b=>typeof b[6]==="number" && b[6] >= 0),6,tfLabels))
     : "";
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${streakPanel(rec)}${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}${timeframeBlock}</td></tr>`;
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${streakPanel(rec)}${reinvestPanel(rec)}${timeframeBlock}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
