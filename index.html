@@ -423,6 +423,7 @@ const dsCache = {};
 const lbState = { sortKey:"pnl", sortDir:-1 };
 async function loadLeaderboard(kind = leaderboardKind){
   leaderboardKind = kind;
+  $("lbMin").value = kind === "crypto" ? "1" : "100";
   DS = dsCache[kind] || null;
   if(DS){
     computeRows();
