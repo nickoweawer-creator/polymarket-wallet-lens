@@ -448,6 +448,23 @@ function streakOf(bets, val){ let m=0,c=0; for(const x of bets){ if(x[1]===val){
 function winRuns(bets){ const r=[]; let c=0; for(const x of bets){ if(x[1]===1)c++; else { if(c>0)r.push(c); c=0; } } if(c>0)r.push(c); return r; }
 function tailStreak(bets, val){ let c=0; for(let i=bets.length-1;i>=0;i--){ if(bets[i][1]===val)c++; else break; } return c; }
 function countAtLeast(runs, min){ let c=0; for(const run of runs) if(run>=min) c++; return c; }
+function avg(a){ return a.length ? a.reduce((s,v)=>s+v,0)/a.length : 0; }
+function percentile(a, p){
+  if(!a.length) return 0;
+  const s=[...a].sort((x,y)=>x-y);
+  const idx=(s.length-1)*p;
+  const lo=Math.floor(idx), hi=Math.ceil(idx);
+  if(lo===hi) return s[lo];
+  const w=idx-lo;
+  return s[lo]*(1-w)+s[hi]*w;
+}
+function currentStreakToken(bets){
+  if(!bets.length) return { side:"W", length:0, token:"W0" };
+  const side = bets[bets.length-1][1]===1 ? "W" : "L";
+  const val = side==="W" ? 1 : 0;
+  const length = tailStreak(bets, val);
+  return { side, length, token:`${side}${length.toLocaleString()}` };
+}
 function median(a){ if(!a.length)return 0; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
 function fmtNum(v){ return Number.isInteger(v) ? String(v) : v.toFixed(1); }
 function computeRows(){
@@ -456,11 +473,13 @@ function computeRows(){
   lbRows = DS.wallets.map(w=>{
     const bets = w.b.filter(x=>x[0]>=F && x[0]<=C);
     const runs = winRuns(bets);
+    const cur = currentStreakToken(bets);
     let wins=0, inv=0, pnl=0, sumP=0;
     for(const x of bets){ const p=x[0]/10000; if(x[1])wins++; inv+=p*x[2]; pnl+=x[2]*(x[1]-p); sumP+=p; }
     const n=bets.length;
     return {w:w.w, name:w.name, capped:w.capped, n, wins, hit:n?wins/n:0, inv, pnl, roi:inv?pnl/inv:0,
-      avgp:n?sumP/n:0, streak:streakOf(bets,1), mstreak:median(runs), lstreak:streakOf(bets,0), currentStreak:tailStreak(bets,1),
+      avgp:n?sumP/n:0, streak:streakOf(bets,1), mstreak:median(runs), currentStreakSide:cur.side, currentStreakLength:cur.length,
+      currentStreakToken:cur.token, avgStreak:avg(runs), p90Streak:percentile(runs,0.9),
       streak25:countAtLeast(runs,25), streak50:countAtLeast(runs,50), streak100:countAtLeast(runs,100), bets};
   });
 }
@@ -511,11 +530,22 @@ function reinvestPanel(rec){
   </tbody></table></div>`;
 }
 function streakPanel(rec){
+  if(leaderboardKind !== "crypto"){
+    return `<div class="detail-block"><table class="detail"><thead><tr><th>Streak stats</th><th class="num">Value</th></tr></thead><tbody>
+      <tr><td>Current win streak</td><td class="num">${rec.currentStreakLength.toLocaleString()}</td></tr>
+      <tr><td>Longest win streak</td><td class="num">${rec.streak.toLocaleString()}</td></tr>
+      <tr><td>Median win streak</td><td class="num">${fmtNum(rec.mstreak)}</td></tr>
+      <tr><td>25+ win streaks</td><td class="num">${rec.streak25.toLocaleString()}</td></tr>
+      <tr><td>50+ win streaks</td><td class="num">${rec.streak50.toLocaleString()}</td></tr>
+      <tr><td>100+ win streaks</td><td class="num">${rec.streak100.toLocaleString()}</td></tr>
+    </tbody></table></div>`;
+  }
   return `<div class="detail-block"><table class="detail"><thead><tr><th>Streak stats</th><th class="num">Value</th></tr></thead><tbody>
-    <tr><td>Current win streak</td><td class="num">${rec.currentStreak.toLocaleString()}</td></tr>
+    <tr><td>Current streak</td><td class="num">${rec.currentStreakToken}</td></tr>
     <tr><td>Longest win streak</td><td class="num">${rec.streak.toLocaleString()}</td></tr>
     <tr><td>Median win streak</td><td class="num">${fmtNum(rec.mstreak)}</td></tr>
-    <tr><td>Longest loss streak</td><td class="num">${rec.lstreak.toLocaleString()}</td></tr>
+    <tr><td>Average win streak</td><td class="num">${fmtNum(rec.avgStreak)}</td></tr>
+    <tr><td>90th pct win streak</td><td class="num">${fmtNum(rec.p90Streak)}</td></tr>
     <tr><td>25+ win streaks</td><td class="num">${rec.streak25.toLocaleString()}</td></tr>
     <tr><td>50+ win streaks</td><td class="num">${rec.streak50.toLocaleString()}</td></tr>
     <tr><td>100+ win streaks</td><td class="num">${rec.streak100.toLocaleString()}</td></tr>
@@ -525,7 +555,10 @@ function toggleExpand(row){
   const nx=row.nextElementSibling;
   if(nx && nx.classList.contains("detail-row")){ nx.remove(); row.querySelector(".exp").textContent="▸"; return; }
   const rec=lbRows.find(r=>r.w===row.dataset.w); if(!rec) return;
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${streakPanel(rec)}${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
+  const timeframeBlock = Array.isArray(DS.timeframes) && rec.bets.some(b=>typeof b[6]==="number" && b[6] >= 0)
+    ? detTable("Market timeframe", brk(rec.bets.filter(b=>typeof b[6]==="number" && b[6] >= 0),6,DS.timeframes))
+    : "";
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${streakPanel(rec)}${reinvestPanel(rec)}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}${timeframeBlock}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
