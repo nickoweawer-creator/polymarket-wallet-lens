@@ -78,6 +78,7 @@
     <button class="tab" data-view="crypto">Crypto Leaderboard</button>
     <button class="tab" data-view="tennis">Tennis Leaderboard</button>
     <button class="tab" data-view="sharp">Sharp Movers</button>
+    <button class="tab" data-view="strategies">📈 Strategies &amp; Monte Carlo</button>
   </nav>
 
   <div id="view-wallet">
@@ -699,8 +700,9 @@ $("spMin").addEventListener("input",renderSharp);
 $("spSearch").addEventListener("input",renderSharp);
 
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("tab-active", b===btn));
   const v = btn.dataset.view;
+  if(v==="strategies"){ window.location.href="strategies.html"; return; }
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("tab-active", b===btn));
   $("view-wallet").classList.toggle("hide", v!=="wallet");
   $("view-leaderboard").classList.toggle("hide", !(v==="sports" || v==="crypto" || v==="tennis"));
   $("view-sharp").classList.toggle("hide", v!=="sharp");
