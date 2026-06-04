@@ -417,6 +417,7 @@ const LEADERBOARDS = {
   sports: { file: "dataset.json", label: "Sports Leaderboard" },
   crypto: { file: "crypto.json", label: "Crypto Leaderboard" },
 };
+const leaderboardCountLabel = kind => kind === "crypto" ? "active wallets" : "traders";
 let leaderboardKind = "sports";
 let DS = null, lbRows = null;
 const dsCache = {};
@@ -428,7 +429,7 @@ async function loadLeaderboard(kind = leaderboardKind){
   if(DS){
     computeRows();
     renderLeaderboard();
-    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} traders · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
+    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} ${leaderboardCountLabel(kind)} · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
     return;
   }
   $("lbStatus").textContent = "Loading dataset…";
@@ -440,7 +441,7 @@ async function loadLeaderboard(kind = leaderboardKind){
     DS.wallets.forEach(w=>w.b.sort((a,b)=>a[3]-b[3]));          // time-sort once for streaks
     $("lbFloor").innerHTML = ["0.95","0.96","0.97","0.98","0.99"].map(f=>`<option ${f==="0.95"?"selected":""}>${f}</option>`).join("");
     $("lbCeil").innerHTML = ["0.96","0.97","0.98","0.99","1.00"].map(f=>`<option ${f==="1.00"?"selected":""}>${f}</option>`).join("");
-    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} traders · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
+    $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} ${leaderboardCountLabel(kind)} · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
     computeRows(); renderLeaderboard();
   }catch(e){ DS=null; $("lbStatus").textContent = "Leaderboard data is still publishing — refresh in a minute."; }
 }
