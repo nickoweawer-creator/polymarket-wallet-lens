@@ -462,7 +462,10 @@ async function loadLeaderboard(kind = leaderboardKind){
     DS = await r.json();
     dsCache[kind] = DS;
     DS.wallets.forEach(w=>w.b.sort((a,b)=>a[3]-b[3]));          // time-sort once for streaks
-    $("lbFloor").innerHTML = ["0.95","0.96","0.97","0.98","0.99"].map(f=>`<option ${f==="0.95"?"selected":""}>${f}</option>`).join("");
+    // tennis is judged across all prices (no favorite-buyer floor); others default to 0.95
+    const floors = kind === "tennis" ? ["0.00","0.50","0.80","0.90","0.95"] : ["0.95","0.96","0.97","0.98","0.99"];
+    const floorDef = kind === "tennis" ? "0.00" : "0.95";
+    $("lbFloor").innerHTML = floors.map(f=>`<option ${f===floorDef?"selected":""}>${f}</option>`).join("");
     $("lbCeil").innerHTML = ["0.96","0.97","0.98","0.99","1.00"].map(f=>`<option ${f==="1.00"?"selected":""}>${f}</option>`).join("");
     $("lbStatus").textContent = `${LEADERBOARDS[kind].label} · ${DS.wallets.length} ${leaderboardCountLabel(kind)} · generated ${new Date(DS.generatedAt).toLocaleDateString()}`;
     computeRows(); renderLeaderboard();
@@ -502,6 +505,7 @@ function computeRows(){
     for(const x of bets){ const p=x[0]/10000; if(x[1])wins++; inv+=p*x[2]; pnl+=x[2]*(x[1]-p); sumP+=p; }
     const n=bets.length;
     return {w:w.w, name:w.name, capped:w.capped, n, wins, hit:n?wins/n:0, inv, pnl, roi:inv?pnl/inv:0,
+      holdPct:w.holdPct, realized:w.realized, edgePct:w.edge, style:w.type, twoSided:w.twoSided, churn:w.churn,
       avgp:n?sumP/n:0, streak:streakOf(bets,1), mstreak:median(runs), currentStreakSide:cur.side, currentStreakLength:cur.length,
       currentStreakToken:cur.token, avgStreak:avg(runs), p90Streak:percentile(runs,0.9),
       streak25:countAtLeast(runs,25), streak50:countAtLeast(runs,50), streak100:countAtLeast(runs,100), bets};
@@ -528,16 +532,40 @@ function renderLeaderboard(){
   let rows = lbRows.filter(r=>r.n>=min);
   const v = r => sortKey==="w" ? (r.name||r.w) : r[sortKey];
   rows.sort((a,b)=>{ const x=v(a), y=v(b); return (typeof x==="string") ? sortDir*x.localeCompare(y) : sortDir*((x||0)-(y||0)); });
-  const cols=[["rank","#"],["w","Wallet"],["n","Bets"],["hit","Hit %"],["streak","Longest streak"],["mstreak","Median streak"],["inv","Invested"],["pnl","Hold PnL"],["roi","ROI"]];
+  const cols = leaderboardKind==="tennis"
+    ? [["rank","#"],["w","Wallet"],["n","Bets"],["hit","Hit %"],["holdPct","Hold %"],["edgePct","Edge"],["pnl","Hold PnL"],["realized","Realized"],["roi","ROI"]]
+    : [["rank","#"],["w","Wallet"],["n","Bets"],["hit","Hit %"],["streak","Longest streak"],["mstreak","Median streak"],["inv","Invested"],["pnl","Hold PnL"],["roi","ROI"]];
   const head=cols.map(([k,l])=>{ const arrow=k===sortKey?(sortDir<0?" ▼":" ▲"):""; return `<th class="${k==="w"?"":"num"}${k!=="rank"?" sortable":""}" data-k="${k}">${l}${arrow}</th>`; }).join("");
-  const body=rows.map((r,i)=>`
-    <tr class="lb-row" data-w="${r.w}"><td class="num">${i+1}</td>
-    <td><span class="exp">▸</span> <a href="https://polymarket.com/profile/${r.w}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(r.name||r.w.slice(0,10)+"…")}</a>${r.capped?' <span class="cap" title="capped at 2000 positions; lower bound">*</span>':''}<div class="addr">${r.w}</div></td>
-    <td class="num">${r.n.toLocaleString()}</td><td class="num">${wrPill(r.hit)}</td>
-    <td class="num">${r.streak.toLocaleString()}</td><td class="num">${fmtNum(r.mstreak)}</td><td class="num">${fmtUsd(r.inv)}</td>${pnlCell(r.pnl)}
-    <td class="num ${r.roi>=0?'pos':'neg'}">${fmtPct(r.roi)}</td></tr>`).join("");
+  const styleChip = s => {
+    if(s==="Sharp bettor") return '<span class="pill pos" title="holds + positive edge: genuinely picks winners">Sharp bettor</span>';
+    if(s==="Market maker") return '<span class="pill neg" title="trades both sides, high churn, ~0 edge: HFT/market-making, not tennis skill">Market maker</span>';
+    if(s==="Momentum trader") return '<span class="pill" title="sells before resolution — trades momentum">Momentum</span>';
+    if(s==="Holder") return '<span class="pill" title="holds to resolution">Holder</span>';
+    return s?'<span class="pill" title="mix of hold and trade">Mixed</span>':'';
+  };
+  const cell=(k,r,i)=>{
+    switch(k){
+      case "rank": return `<td class="num">${i+1}</td>`;
+      case "w": return `<td><span class="exp">▸</span> <a href="https://polymarket.com/profile/${r.w}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(r.name||r.w.slice(0,10)+"…")}</a>${r.capped?' <span class="cap" title="capped">*</span>':''}<div class="addr">${r.w}</div></td>`;
+      case "n": return `<td class="num">${r.n.toLocaleString()}</td>`;
+      case "hit": return `<td class="num">${wrPill(r.hit)}</td>`;
+      case "holdPct": return `<td class="num">${r.holdPct==null?'—':r.holdPct+'% '+styleChip(r.style)}</td>`;
+      case "edgePct": return `<td class="num ${(r.edgePct||0)>=0?'pos':'neg'}">${r.edgePct==null?'—':(r.edgePct>=0?'+':'')+(r.edgePct*100).toFixed(1)+'%'}</td>`;
+      case "streak": return `<td class="num">${r.streak.toLocaleString()}</td>`;
+      case "mstreak": return `<td class="num">${fmtNum(r.mstreak)}</td>`;
+      case "inv": return `<td class="num">${fmtUsd(r.inv)}</td>`;
+      case "pnl": return pnlCell(r.pnl);
+      case "realized": return r.realized==null?'<td class="num">—</td>':pnlCell(r.realized);
+      case "roi": return `<td class="num ${r.roi>=0?'pos':'neg'}">${fmtPct(r.roi)}</td>`;
+      default: return "<td></td>";
+    }
+  };
+  const body=rows.map((r,i)=>`<tr class="lb-row" data-w="${r.w}">${cols.map(([k])=>cell(k,r,i)).join("")}</tr>`).join("");
+  const tnote = leaderboardKind==="tennis"
+    ? `Tennis-only PnL, all prices. <b>Hold %</b> = positions held to resolution (vs sold out = momentum); <b>Realized</b> = true PnL incl. their sells; <b>Edge</b> = hit% − avg entry. `
+    : `Hold-to-expiry, entry price ${$("lbFloor").value}–${$("lbCeil").value}. Edge = hit% − avg entry price. `;
   $("lbResults").innerHTML = `
-    <p class="note">Hold-to-expiry, entry price ${$("lbFloor").value}–${$("lbCeil").value}. ${rows.length} traders. <b>Click a column to sort</b>, <b>click a row to expand</b> its bucket / ${(DS.groupLabel||"Group").toLowerCase()} / market detail. Longest / median streak = consecutive wins. Edge = hit% − avg entry price. <span class="cap">*</span> = capped (lower bound).</p>
+    <p class="note">${tnote}${rows.length} traders. <b>Click a column to sort, click a row to expand.</b> <span class="cap">*</span> = capped (lower bound).</p>
     <table id="lbTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 function reinvestPanel(rec){
@@ -586,7 +614,20 @@ function toggleExpand(row){
   const timeframeBlock = Array.isArray(DS.timeframes) && rec.bets.some(b=>typeof b[6]==="number" && b[6] >= 0)
     ? detTable("Market timeframe (price window)", brk(rec.bets.filter(b=>typeof b[6]==="number" && b[6] >= 0),6,tfLabels))
     : "";
-  const html=`<tr class="detail-row"><td></td><td colspan="8">${streakPanel(rec)}${reinvestPanel(rec)}${timeframeBlock}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
+  const stylePanel = (leaderboardKind==="tennis" && rec.holdPct!=null)
+    ? `<div class="detail-block"><table class="detail"><thead><tr><th>Trading style &amp; edge</th><th class="num">Value</th></tr></thead><tbody>
+        <tr><td>Type</td><td class="num">${rec.style||'—'}</td></tr>
+        <tr><td>Held to resolution</td><td class="num">${rec.holdPct}%</td></tr>
+        <tr><td>Sold out early (momentum)</td><td class="num">${100-rec.holdPct}%</td></tr>
+        <tr><td>Two-sided markets (MM tell)</td><td class="num">${rec.twoSided==null?'—':rec.twoSided+'%'}</td></tr>
+        <tr><td>Churn (trades / position)</td><td class="num">${rec.churn==null?'—':rec.churn}</td></tr>
+        <tr><td>Probability edge (hit − entry)</td><td class="num ${(rec.edgePct||0)>=0?'pos':'neg'}">${(rec.edgePct>=0?'+':'')+(rec.edgePct*100).toFixed(2)}%</td></tr>
+        <tr><td>Hold-to-expiry PnL</td><td class="num ${rec.pnl>=0?'pos':'neg'}">${fmtSigned(rec.pnl)}</td></tr>
+        <tr><td>Realized PnL (incl. sells)</td><td class="num ${rec.realized>=0?'pos':'neg'}">${fmtSigned(rec.realized)}</td></tr>
+        <tr><td>Trading alpha (realized − hold)</td><td class="num ${(rec.realized-rec.pnl)>=0?'pos':'neg'}">${fmtSigned(rec.realized-rec.pnl)}</td></tr>
+       </tbody></table></div>`
+    : "";
+  const html=`<tr class="detail-row"><td></td><td colspan="8">${stylePanel}${streakPanel(rec)}${reinvestPanel(rec)}${timeframeBlock}${detTable("Price bucket",bucketBrk(rec.bets))}${detTable(DS.groupLabel||"Group",brk(rec.bets,4,DS.groups||DS.sports||[]))}${detTable("Market type",brk(rec.bets,5,DS.types||[]))}</td></tr>`;
   row.insertAdjacentHTML("afterend", html);
   row.querySelector(".exp").textContent="▾";
 }
