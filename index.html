@@ -127,8 +127,8 @@
     <div class="controls">
       <label class="field"><span>Show</span>
         <select id="spClass">
-          <option value="FAST" selected>Fast money only (≤20s lead)</option>
-          <option value="ALL">All sharp movers</option>
+          <option value="ALL" selected>All repeated bettors</option>
+          <option value="FAST">Fast money only (≤20s median)</option>
         </select>
       </label>
       <label class="field"><span>Min hi-vol matches</span>
@@ -610,9 +610,9 @@ function renderSharp(){
   const v = r => sortKey==="w" ? (r.name||r.wallet) : r[sortKey];
   rows.sort((a,b)=>{ const x=v(a),y=v(b); return (typeof x==="string")?sortDir*x.localeCompare(y):sortDir*((x||0)-(y||0)); });
   const c=SHARP.corpus;
-  $("spStatus").innerHTML = `${SHARP.fastCount} fast-money + ${SHARP.total-SHARP.fastCount} sharp wallets · `
-    + `corpus: ${c.matches} matches >$${(c.minVolumeUsd/1000)|0}k, ${c.breakoutJumps.toLocaleString()} repricings, `
-    + `${(c.trades/1000|0)}k trades · generated ${new Date(SHARP.generatedAt).toLocaleDateString()}`;
+  $("spStatus").innerHTML = `${SHARP.total} repeated bettors (≥3 matches) · ${SHARP.fastCount} fast-money · `
+    + `${c.windowSec||60}s pre-move window · corpus: ${c.matches} matches >$${(c.minVolumeUsd/1000)|0}k, `
+    + `${c.breakoutJumps.toLocaleString()} repricings, ${(c.trades/1000|0)}k trades · generated ${new Date(SHARP.generatedAt).toLocaleDateString()}`;
   const cols=[["rank","#"],["w","Wallet"],["cls","Class"],["matches","Hi-vol matches"],
     ["buys","Pre-move buys"],["medLead","Median lead"],["minLead","Min lead"],
     ["size","Shares early"],["edge","Est. edge"]];
@@ -630,8 +630,8 @@ function renderSharp(){
       <td class="num pos">${fmtUsd(r.edge)}</td>
     </tr>`).join("") || `<tr><td colspan="9" style="color:var(--muted)">No wallets match the filter.</td></tr>`;
   $("spResults").innerHTML = `
-    <p class="note">Wallets that bought the winning side <b>before the breakout tick</b> (the first trade that escapes the pre-jump price range) on Polymarket football markets with >$100k volume — i.e. ahead of the price move, not riding the cascade.
-    <b>FAST</b> = median lead ≤20s before the move. Lead is seconds before the breakout; lower = sharper. <b>Click a column to sort, click a row to analyze that wallet.</b></p>
+    <p class="note"><b>Repeated bettors</b> who bought the winning side within <b>60s before the goal hit the price</b> (the breakout tick — first trade that escapes the pre-jump range) on Polymarket football markets with >$100k volume. Ranked by how many distinct matches they did it in — i.e. wallets that are <i>systematically</i> ahead of the move, not the cascade.
+    <b>FAST</b> = median lead ≤20s. Lead is seconds before the breakout; lower = sharper. <b>Click a column to sort, click a row to analyze that wallet.</b></p>
     <table id="spTable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
     <p class="note" style="margin-top:10px">Caveat: this is a front-running <i>frequency</i> signal, not verified P&amp;L (losing bets aren't netted). Repeated 1–5s leads across many matches are the strongest evidence of a low-latency data edge. Use the Wallet Analyzer to check a wallet's actual hold-to-expiry record.</p>`;
 }
