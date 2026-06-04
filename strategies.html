@@ -18,6 +18,8 @@
   .field{display:flex;flex-direction:column;gap:5px}
   .field span{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
   input,select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px;outline:none;width:110px}
+  input[type=range]{width:160px;padding:0;accent-color:var(--accent);cursor:pointer}
+  .field b{color:var(--accent);font-variant-numeric:tabular-nums}
   button{background:var(--accent);border:none;color:#04101f;font-weight:700;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer}
   button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
   table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:22px}
@@ -52,13 +54,14 @@
   <p class="sub">10 strategies from pure gamble to HFT-grade alpha, each with a Monte Carlo simulation of bankroll outcomes. Parameters are modelled estimates from the leaderboard/Sharp-Movers metrics — tune them. <a href="./">← Wallet Lens</a></p>
 
   <div class="controls">
-    <label class="field"><span>Start bankroll $</span><input id="bank" value="1000"></label>
-    <label class="field"><span>Bets / horizon</span><input id="nbets" value="200"></label>
-    <label class="field"><span>Sim paths</span><input id="paths" value="3000"></label>
-    <label class="field"><span>Ruin threshold</span><input id="ruin" value="0.25"></label>
-    <button id="runAll">Run all simulations</button>
-    <span class="note" id="seedNote">deterministic seed · re-run after changing inputs · <b>click any table header to sort</b></span>
+    <label class="field"><span>Horizon (bets): <b id="nbetsV">200</b></span><input type="range" id="nbets" min="20" max="500" step="10" value="200"></label>
+    <label class="field"><span>Edge capture: <b id="capV">100%</b></span><input type="range" id="cap" min="0" max="150" step="5" value="100"></label>
+    <label class="field"><span>Aggression ×: <b id="aggrV">1.0</b></span><input type="range" id="aggr" min="0.25" max="4" step="0.25" value="1"></label>
+    <label class="field"><span>Sim paths: <b id="pathsV">3000</b></span><input type="range" id="paths" min="500" max="8000" step="500" value="3000"></label>
+    <label class="field"><span>Ruin threshold: <b id="ruinV">25%</b></span><input type="range" id="ruin" min="0" max="90" step="5" value="25"></label>
+    <label class="field"><span>Bankroll $</span><input id="bank" value="1000" style="width:90px"></label>
   </div>
+  <p class="note" style="margin:-8px 0 16px">Drag sliders — sims re-run live. <b>Edge capture</b> = how much of the modelled edge you actually keep after slippage/latency (50% = you lose half). <b>Aggression</b> scales every bet size. <b>Click any table header to sort.</b></p>
 
   <table id="summary"><thead><tr>
     <th>#</th><th>Strategy</th><th>Risk</th><th class="num">Win%</th><th class="num">Edge/bet</th>
@@ -147,10 +150,19 @@ const S=[
   meta:"Copy: single best live edge · Reinvest: full-Kelly compound · Edge: 16%/bet concentrated"},
 ];
 
-function edgeOf(s){ if(s.mode==="barbell") return 0.8*(0.932*1.075-1)+0.2*(0.55*2.0-1); return s.p*s.b-(1-s.p)*(s.lossB||1); }
+const $=id=>document.getElementById(id);
+function edgeOf(s,cap=1){
+  if(s.mode==="barbell"){const c=adjP(0.932,0.075,1,cap),sa=adjP(0.585,1,1,cap);return 0.8*(c*1.075-1)+0.2*(sa*2-1);}
+  const lb=s.lossB||1,p=adjP(s.p,s.b,lb,cap); return p*s.b-(1-p)*lb;
+}
+
+// edge-capture: shrink win prob toward break-even (models slippage/latency haircut)
+function adjP(p,b,lossB,cap){ const ps=lossB/(b+lossB); return Math.max(0,Math.min(1,ps+cap*(p-ps))); }
 
 function simStrategy(s,opts){
-  const {bank,nbets,paths,ruin}=opts;
+  const {bank,nbets,paths,ruin,cap=1,aggr=1}=opts;
+  const lossB=s.lossB||1;
+  const P = s.mode==="barbell" ? null : adjP(s.p,s.b,lossB,cap);
   const finals=new Float64Array(paths);
   const curves=[]; // sample equity curves
   const SAMPLE=Math.min(36,paths);
@@ -162,22 +174,22 @@ function simStrategy(s,opts){
     let core=bk*0.8, sat=bk*0.2;
     for(let i=0;i<nbets;i++){
       if(s.mode==="barbell"){
-        // core: index, sat: fast front-run
-        core = stepOnce(core,{p:0.932,b:0.075,frac:0.0025,mode:"fixed",base:bank*0.8},r);
+        core = stepOnce(core,{p:adjP(0.932,0.075,1,cap),b:0.075,frac:0.0025*aggr,mode:"fixed",base:bank*0.8},r);
         const before=sat;
-        sat = stepOnce(sat,{p:0.585,b:1.0,frac:0.3*( (0.585*2-1)/1.0 ),mode:"compound"},r);
-        if(sat>before*1.0 && sat>bank*0.2){ const gain=sat-bank*0.2; core+=gain; sat=bank*0.2; } // sweep satellite wins to core
+        sat = stepOnce(sat,{p:adjP(0.585,1,1,cap),b:1.0,frac:Math.min(0.9,0.3*((0.585*2-1)/1.0)*aggr),mode:"compound"},r);
+        if(sat>before && sat>bank*0.2){ core+=sat-bank*0.2; sat=bank*0.2; } // sweep satellite wins to core
         bk=core+sat;
       } else if(s.mode==="allin"){
-        if(r()<s.p) bk*=(1+s.b); else { bk=0; dead=true; }
+        if(r()<P) bk*=(1+s.b); else { bk=0; dead=true; }
       } else if(s.stopLossStreak && lossStreak>=s.stopLossStreak){
         // halted after loss-streak: bankroll frozen for the rest of the horizon
       } else {
         let frac=s.frac;
-        if(s.mode==="kelly"){ const e=s.p*(1+s.b)-1; const k=Math.max(0,e/s.b); frac=Math.min(0.25,(s.kfrac||0.25)*k); }
+        if(s.mode==="kelly"){ const e=P*s.b-(1-P)*lossB; const k=Math.max(0,e/s.b); frac=Math.min(0.5,(s.kfrac||0.25)*k); }
+        frac*=aggr;
         let stake = s.mode==="fixed" ? bank*frac : bk*frac;
         stake=Math.min(stake,bk);
-        if(r()<s.p){ bk+=stake*s.b; lossStreak=0; } else { bk-=stake*(s.lossB||1); lossStreak++; }
+        if(r()<P){ bk+=stake*s.b; lossStreak=0; } else { bk-=stake*lossB; lossStreak++; }
         if(bk<=0){bk=0;dead=true;}
       }
       if(bk<=0){bk=0;dead=true;}
@@ -274,11 +286,16 @@ function renderCards(){
     </div>`).join("");
 }
 
+const $v=(id,fn)=>{const el=document.getElementById(id);if(el)el.textContent=fn;};
+function readOpts(){
+  const cap=+$("cap").value/100, aggr=+$("aggr").value;
+  $v("nbetsV",$("nbets").value); $v("capV",$("cap").value+"%"); $v("aggrV",aggr.toFixed(2)+"×");
+  $v("pathsV",(+$("paths").value).toLocaleString()); $v("ruinV",$("ruin").value+"%");
+  return {bank:+$("bank").value||1000, nbets:+$("nbets").value, paths:+$("paths").value,
+    ruin:+$("ruin").value/100, cap, aggr};
+}
 function runAll(){
-  const opts={bank:+document.getElementById("bank").value||1000,
-    nbets:Math.max(10,Math.min(2000,+document.getElementById("nbets").value||200)),
-    paths:Math.max(200,Math.min(20000,+document.getElementById("paths").value||3000)),
-    ruin:Math.max(0,Math.min(0.99,+document.getElementById("ruin").value||0.25))};
+  const opts=readOpts();
   SUMMARY=[];
   S.forEach(s=>{
     const res=simStrategy(s,opts);
@@ -291,8 +308,9 @@ function runAll(){
     ].map(([k,v,c])=>`<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`).join("");
     drawCurves(document.getElementById("cv"+s.n),res,opts.nbets);
     drawHist(document.getElementById("hist"+s.n),res);
-    SUMMARY.push({n:s.n,name:s.name,risk:s.risk,win:s.mode==="barbell"?null:s.p,
-      edge:edgeOf(s),median:res.median,p5:res.p5,p95:res.p95,ruin:res.ruin});
+    SUMMARY.push({n:s.n,name:s.name,risk:s.risk,
+      win:s.mode==="barbell"?null:adjP(s.p,s.b,s.lossB||1,opts.cap),
+      edge:edgeOf(s,opts.cap),median:res.median,p5:res.p5,p95:res.p95,ruin:res.ruin});
   });
   renderSummary();
 }
@@ -319,8 +337,8 @@ document.getElementById("summary").addEventListener("click",e=>{
   renderSummary();
 });
 renderCards();
-document.getElementById("runAll").addEventListener("click",runAll);
-window.addEventListener("resize",()=>{ if(document.querySelector("#summaryBody tr")) runAll(); });
+let _t; const schedule=()=>{clearTimeout(_t);_t=setTimeout(runAll,140);};
+["nbets","cap","aggr","paths","ruin","bank"].forEach(id=>$(id).addEventListener("input",schedule));
 runAll();
 </script>
 </body>
