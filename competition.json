@@ -1,12 +1,12 @@
 {
-  "updated": "12:07:01",
+  "updated": "12:07:52",
   "speed": {
     "as": 0,
-    "bk": 1
+    "bk": 2
   },
   "coverage": {
     "as": 0,
-    "bk": 1
+    "bk": 0
   },
   "overall": {
     "as": 0,
@@ -16,7 +16,7 @@
     {
       "match": "Singapore vs China",
       "score": "0-1",
-      "status": "37",
+      "status": "38",
       "live": true,
       "ft": false,
       "ko": "11:30",
@@ -88,11 +88,11 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "as": null,
+      "as": "12:07:06",
       "bk": "12:06:31",
       "bk_prov": "paddypower",
-      "delta": null,
-      "winner": "cov_bk"
+      "delta": 35.3,
+      "winner": "bk"
     },
     {
       "match": "Singapore vs China",
@@ -105,7 +105,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 22,
+    "allsports_matches": 19,
     "bookmaker_matches": 130
   }
 }
