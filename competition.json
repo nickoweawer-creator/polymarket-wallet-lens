@@ -1,8 +1,8 @@
 {
-  "updated": "17:37:24",
+  "updated": "17:38:16",
   "speed": {
     "as": 0,
-    "bk": 20
+    "bk": 21
   },
   "coverage": {
     "as": 0,
@@ -10,7 +10,7 @@
   },
   "overall": {
     "as": 0,
-    "bk": 20
+    "bk": 21
   },
   "matches": [
     {
@@ -65,8 +65,8 @@
     },
     {
       "match": "Georgia vs Bahrain",
-      "score": "1-0",
-      "status": "77",
+      "score": "2-0",
+      "status": "78",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "3-0",
-      "status": "76",
+      "status": "77",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -119,6 +119,15 @@
       "bk": "17:12:33",
       "bk_prov": "bet365",
       "delta": 30.1,
+      "winner": "bk"
+    },
+    {
+      "match": "Georgia vs Bahrain",
+      "score": "2-0",
+      "as": "17:38:03",
+      "bk": "17:37:34",
+      "bk_prov": "22bet",
+      "delta": 28.7,
       "winner": "bk"
     },
     {
