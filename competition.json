@@ -1,22 +1,22 @@
 {
-  "updated": "13:10:00",
+  "updated": "13:10:52",
   "speed": {
     "as": 0,
     "bk": 4
   },
   "coverage": {
     "as": 0,
-    "bk": 0
+    "bk": 1
   },
   "overall": {
     "as": 0,
-    "bk": 4
+    "bk": 5
   },
   "matches": [
     {
       "match": "Singapore vs China",
       "score": "1-2",
-      "status": "82",
+      "status": "83",
       "live": true,
       "ft": false,
       "ko": "11:30",
@@ -26,7 +26,7 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "status": "51",
+      "status": "52",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -36,7 +36,7 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "0-0",
-      "status": "40",
+      "status": "41",
       "live": true,
       "ft": false,
       "ko": "12:30",
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "0-0",
-      "status": "5",
+      "status": "6",
       "live": true,
       "ft": false,
       "ko": "13:00",
@@ -93,6 +93,15 @@
       "bk_prov": "paddypower",
       "delta": 35.3,
       "winner": "bk"
+    },
+    {
+      "match": "Hong Kong vs Mongolia",
+      "score": "2-0",
+      "as": null,
+      "bk": "13:10:29",
+      "bk_prov": "22bet",
+      "delta": null,
+      "winner": "cov_bk"
     },
     {
       "match": "Singapore vs China",
