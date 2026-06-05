@@ -1,5 +1,5 @@
 {
-  "updated": "17:51:57",
+  "updated": "17:53:39",
   "speed": {
     "as": 0,
     "bk": 23
@@ -68,7 +68,7 @@
       "score": "2-0",
       "status": "",
       "live": true,
-      "ft": false,
+      "ft": true,
       "ko": "16:00",
       "seen_as": true,
       "seen_bk": true
