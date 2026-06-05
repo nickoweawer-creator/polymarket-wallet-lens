@@ -1,5 +1,5 @@
 {
-  "updated": "15:06:06",
+  "updated": "15:06:58",
   "speed": {
     "as": 0,
     "bk": 12
@@ -55,8 +55,8 @@
     },
     {
       "match": "Tajikistan vs India",
-      "score": "0-0",
-      "status": "5",
+      "score": "-",
+      "status": "",
       "live": true,
       "ft": false,
       "ko": "15:00",
