@@ -1,5 +1,5 @@
 {
-  "updated": "15:46:37",
+  "updated": "15:55:04",
   "speed": {
     "as": 0,
     "bk": 13
@@ -71,7 +71,7 @@
       "ft": false,
       "ko": "16:00",
       "seen_as": false,
-      "seen_bk": false
+      "seen_bk": true
     },
     {
       "match": "Belarus vs Syria",
@@ -81,7 +81,7 @@
       "ft": false,
       "ko": "16:00",
       "seen_as": false,
-      "seen_bk": false
+      "seen_bk": true
     }
   ],
   "goals": [
@@ -205,6 +205,6 @@
   ],
   "feeds": {
     "allsports_matches": 24,
-    "bookmaker_matches": 246
+    "bookmaker_matches": 252
   }
 }
