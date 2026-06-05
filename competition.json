@@ -1,5 +1,5 @@
 {
-  "updated": "16:47:14",
+  "updated": "16:48:05",
   "speed": {
     "as": 0,
     "bk": 18
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "3-1",
-      "status": "90",
+      "status": "",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "2-0",
-      "status": "44",
+      "status": "45",
       "live": true,
       "ft": false,
       "ko": "16:00",
