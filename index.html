@@ -175,8 +175,8 @@
         <label class="field"><span>League</span>
           <select id="leadLeague"></select>
         </label>
-        <label class="field"><span>Minimum trigger minute: <b id="leadMinuteLabel">0+</b></span>
-          <input id="leadMinute" class="lead-slider" type="range" min="0" max="90" step="5" value="0" />
+        <label class="field"><span>Minimum trigger minute: <b id="leadMinuteLabel">1+</b></span>
+          <input id="leadMinute" class="lead-slider" type="range" min="1" max="90" step="1" value="1" />
         </label>
       </div>
       <div id="leadStatus" class="status"></div>
@@ -763,6 +763,9 @@ async function loadLeadAdvantage(){
 function leadBucketStart(bucket){
   return bucket === "90+" ? 90 : Number(bucket.slice(0,2));
 }
+function leadBucketEnd(bucket){
+  return bucket === "90+" ? 90 : Number(bucket.slice(3,5));
+}
 function leadWeighted(rows, key){
   const n = rows.reduce((s,r)=>s+Number(r.n||0),0);
   return n ? rows.reduce((s,r)=>s+Number(r[key]||0)*Number(r.n||0),0)/n : 0;
@@ -770,20 +773,23 @@ function leadWeighted(rows, key){
 function renderLeadAdvantage(){
   if(!LEAD) return;
   const league = $("leadLeague").value || "All leagues";
-  const minMinute = Number($("leadMinute").value || 0);
+  const minMinute = Number($("leadMinute").value || 1);
   $("leadMinuteLabel").textContent = `${minMinute}+`;
+  const minuteRows = (LEAD.minutes||[])
+    .filter(r=>r.league===league && Number(r.n||0)>0 && Number(r.minute)>=minMinute)
+    .sort((a,b)=>Number(a.minute)-Number(b.minute));
   const rows = (LEAD.buckets||[])
-    .filter(r=>r.league===league && Number(r.n||0)>0 && leadBucketStart(r.bucket)>=minMinute)
+    .filter(r=>r.league===league && Number(r.n||0)>0 && leadBucketEnd(r.bucket)>=minMinute)
     .sort((a,b)=>(a.sort||0)-(b.sort||0));
   const allRows = (LEAD.buckets||[])
     .filter(r=>r.league===league && Number(r.n||0)>0)
     .sort((a,b)=>(a.sort||0)-(b.sort||0));
-  const n = rows.reduce((s,r)=>s+Number(r.n||0),0);
-  const winRate = leadWeighted(rows,"winRate");
-  const notLoseRate = leadWeighted(rows,"notLoseRate");
-  const drawRate = leadWeighted(rows,"drawRate");
-  const lossRate = leadWeighted(rows,"lossRate");
-  const concede2Rate = leadWeighted(rows,"concede2PlusRate");
+  const n = minuteRows.reduce((s,r)=>s+Number(r.n||0),0);
+  const winRate = leadWeighted(minuteRows,"winRate");
+  const notLoseRate = leadWeighted(minuteRows,"notLoseRate");
+  const drawRate = leadWeighted(minuteRows,"drawRate");
+  const lossRate = leadWeighted(minuteRows,"lossRate");
+  const concede2Rate = leadWeighted(minuteRows,"concede2PlusRate");
   const best = rows.reduce((b,r)=>{
     if(!b) return r;
     if(Number(r.notLoseRate)!==Number(b.notLoseRate)) return Number(r.notLoseRate)>Number(b.notLoseRate)?r:b;
@@ -798,7 +804,7 @@ function renderLeadAdvantage(){
     ["Best bucket", best ? best.bucket : "—", best ? `${fmtPct(best.notLoseRate)} not lose · n=${Number(best.n).toLocaleString()}` : "No sample"],
   ].map(([k,v,s])=>`<div class="lead-card"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
   const bars = allRows.map(r=>{
-    const active = leadBucketStart(r.bucket)>=minMinute;
+    const active = leadBucketEnd(r.bucket)>=minMinute;
     const width = Math.max(3, Math.round(Number(r.notLoseRate||0)*100));
     return `<div class="lead-bar-row" style="${active?'':'opacity:.38'}">
       <span class="lead-bar-label">${esc(r.bucket)}</span>
