@@ -1,8 +1,8 @@
 {
-  "updated": "16:06:13",
+  "updated": "16:07:05",
   "speed": {
     "as": 0,
-    "bk": 13
+    "bk": 14
   },
   "coverage": {
     "as": 0,
@@ -10,7 +10,7 @@
   },
   "overall": {
     "as": 0,
-    "bk": 13
+    "bk": 14
   },
   "matches": [
     {
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "1-0",
-      "status": "49",
+      "status": "50",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -66,7 +66,7 @@
     {
       "match": "Georgia vs Bahrain",
       "score": "0-0",
-      "status": "5",
+      "status": "6",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -75,8 +75,8 @@
     },
     {
       "match": "Belarus vs Syria",
-      "score": "0-0",
-      "status": "3",
+      "score": "1-0",
+      "status": "4",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -85,6 +85,15 @@
     }
   ],
   "goals": [
+    {
+      "match": "Belarus vs Syria",
+      "score": "1-0",
+      "as": "16:07:02",
+      "bk": "16:06:20",
+      "bk_prov": "22bet",
+      "delta": 42.5,
+      "winner": "bk"
+    },
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
@@ -204,7 +213,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 40,
+    "allsports_matches": 41,
     "bookmaker_matches": 282
   }
 }
