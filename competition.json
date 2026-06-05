@@ -1,22 +1,22 @@
 {
-  "updated": "13:03:05",
+  "updated": "13:03:57",
   "speed": {
     "as": 0,
     "bk": 3
   },
   "coverage": {
     "as": 0,
-    "bk": 0
+    "bk": 1
   },
   "overall": {
     "as": 0,
-    "bk": 3
+    "bk": 4
   },
   "matches": [
     {
       "match": "Singapore vs China",
       "score": "0-2",
-      "status": "75",
+      "status": "76",
       "live": true,
       "ft": false,
       "ko": "11:30",
@@ -36,7 +36,7 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "0-0",
-      "status": "33",
+      "status": "34",
       "live": true,
       "ft": false,
       "ko": "12:30",
@@ -111,10 +111,19 @@
       "bk_prov": "bet365",
       "delta": 85.6,
       "winner": "bk"
+    },
+    {
+      "match": "Singapore vs China",
+      "score": "1-2",
+      "as": null,
+      "bk": "13:03:46",
+      "bk_prov": "bet365",
+      "delta": null,
+      "winner": "cov_bk"
     }
   ],
   "feeds": {
-    "allsports_matches": 11,
+    "allsports_matches": 12,
     "bookmaker_matches": 160
   }
 }
