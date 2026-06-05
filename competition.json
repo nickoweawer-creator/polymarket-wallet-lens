@@ -1,5 +1,5 @@
 {
-  "updated": "15:19:54",
+  "updated": "15:20:46",
   "speed": {
     "as": 0,
     "bk": 13
@@ -47,7 +47,7 @@
       "match": "Indonesia vs Oman",
       "score": "3-0",
       "status": "",
-      "live": true,
+      "live": false,
       "ft": true,
       "ko": "13:00",
       "seen_as": true,
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "1-0",
-      "status": "19",
+      "status": "20",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -204,7 +204,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 17,
+    "allsports_matches": 16,
     "bookmaker_matches": 217
   }
 }
