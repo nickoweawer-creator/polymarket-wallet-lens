@@ -37,11 +37,22 @@ const HOME="hungary", AWAY="finland";
 let ac, lastTotal=null, pmCond=null, pmYes="Yes", pmHist=[], lastAlarm=0;
 const $=id=>document.getElementById(id);
 function log(m){const d=$('log');const t=new Date().toISOString().substr(11,8);d.innerHTML=`<div>${t}  ${m}</div>`+d.innerHTML;}
-function beep(freq,dur,vol){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+dur);}
+// soft sine "bell" with attack/decay envelope + a fifth overtone — pleasant, not harsh
+function chime(freq,when,dur,vol){if(!ac)return;const t=ac.currentTime+(when||0);
+  [[freq,vol],[freq*1.5,vol*0.35]].forEach(([f,v])=>{
+    const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(v,t+0.02);          // quick soft attack
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);      // gentle decay
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+0.05);});}
+function beep(freq,dur,vol){chime(freq,0,dur,vol);}          // back-compat (test beep)
+// a warm rising arpeggio that repeats a few times
+function jingle(){const notes=[523.25,659.25,783.99,1046.5];   // C5 E5 G5 C6 major chord
+  notes.forEach((f,i)=>chime(f,i*0.16,0.55,0.6));}
 function alarm(text){
   const now=Date.now(); if(now-lastAlarm<8000)return; lastAlarm=now;   // 8s cooldown
   log("🚨 "+text);
-  let i=0; const iv=setInterval(()=>{beep(i%2?1320:880,0.18,0.9); if(++i>=14)clearInterval(iv);},190);
+  let r=0; jingle(); const iv=setInterval(()=>{jingle(); if(++r>=3)clearInterval(iv);},900);
   try{const u=new SpeechSynthesisUtterance(text);u.rate=1.0;u.volume=1;speechSynthesis.speak(u);
       setTimeout(()=>speechSynthesis.speak(new SpeechSynthesisUtterance(text)),1600);}catch(e){}
   document.body.classList.add('flash');setTimeout(()=>document.body.classList.remove('flash'),4000);
@@ -88,7 +99,7 @@ async function pollPM(){
 }
 $('arm').onclick=()=>{
   ac=new (window.AudioContext||window.webkitAudioContext)();
-  beep(880,0.15,0.7);setTimeout(()=>beep(1320,0.2,0.7),180);          // test beep
+  jingle();                                                            // test chime (same as alert)
   try{speechSynthesis.speak(new SpeechSynthesisUtterance('Alert armed'));}catch(e){}
   try{Notification.requestPermission();}catch(e){}
   $('arm').textContent='🔔 ARMED — listening for goals';$('arm').className='armed';
