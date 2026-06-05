@@ -1,5 +1,5 @@
 {
-  "updated": "13:54:03",
+  "updated": "13:54:55",
   "speed": {
     "as": 0,
     "bk": 11
@@ -28,7 +28,7 @@
       "score": "2-0",
       "status": "",
       "live": true,
-      "ft": false,
+      "ft": true,
       "ko": "12:00",
       "seen_as": true,
       "seen_bk": true
@@ -187,6 +187,6 @@
   ],
   "feeds": {
     "allsports_matches": 9,
-    "bookmaker_matches": 168
+    "bookmaker_matches": 170
   }
 }
