@@ -1,5 +1,5 @@
 {
-  "updated": "17:32:17",
+  "updated": "17:33:08",
   "speed": {
     "as": 0,
     "bk": 20
@@ -66,7 +66,7 @@
     {
       "match": "Georgia vs Bahrain",
       "score": "1-0",
-      "status": "71",
+      "status": "72",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "3-0",
-      "status": "71",
+      "status": "72",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -267,7 +267,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 55,
+    "allsports_matches": 57,
     "bookmaker_matches": 358
   }
 }
