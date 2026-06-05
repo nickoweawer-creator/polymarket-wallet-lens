@@ -1,16 +1,16 @@
 {
-  "updated": "15:08:42",
+  "updated": "15:09:34",
   "speed": {
     "as": 0,
     "bk": 12
   },
   "coverage": {
     "as": 0,
-    "bk": 0
+    "bk": 1
   },
   "overall": {
     "as": 0,
-    "bk": 12
+    "bk": 13
   },
   "matches": [
     {
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "0-0",
-      "status": "8",
+      "status": "9",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -158,6 +158,15 @@
       "winner": "bk"
     },
     {
+      "match": "Tajikistan vs India",
+      "score": "1-0",
+      "as": null,
+      "bk": "15:09:15",
+      "bk_prov": "22bet",
+      "delta": null,
+      "winner": "cov_bk"
+    },
+    {
       "match": "Thailand vs Kuwait",
       "score": "1-0",
       "as": "13:13:02",
@@ -196,6 +205,6 @@
   ],
   "feeds": {
     "allsports_matches": 19,
-    "bookmaker_matches": 209
+    "bookmaker_matches": 211
   }
 }
