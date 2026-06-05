@@ -1,5 +1,5 @@
 {
-  "updated": "14:00:06",
+  "updated": "14:00:58",
   "speed": {
     "as": 0,
     "bk": 11
@@ -28,7 +28,7 @@
       "score": "2-0",
       "status": "",
       "live": true,
-      "ft": false,
+      "ft": true,
       "ko": "12:00",
       "seen_as": true,
       "seen_bk": true
@@ -36,7 +36,7 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "2-1",
-      "status": "68",
+      "status": "69",
       "live": true,
       "ft": false,
       "ko": "12:30",
@@ -186,7 +186,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 9,
+    "allsports_matches": 11,
     "bookmaker_matches": 179
   }
 }
