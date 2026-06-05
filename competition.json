@@ -1,5 +1,5 @@
 {
-  "updated": "15:01:48",
+  "updated": "15:02:40",
   "speed": {
     "as": 0,
     "bk": 12
@@ -48,7 +48,7 @@
       "score": "3-0",
       "status": "",
       "live": true,
-      "ft": false,
+      "ft": true,
       "ko": "13:00",
       "seen_as": true,
       "seen_bk": true
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "0-0",
-      "status": "1",
+      "status": "2",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -195,7 +195,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 15,
+    "allsports_matches": 18,
     "bookmaker_matches": 202
   }
 }
