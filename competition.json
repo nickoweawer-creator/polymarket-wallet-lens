@@ -1,5 +1,5 @@
 {
-  "updated": "14:39:01",
+  "updated": "14:39:59",
   "speed": {
     "as": 0,
     "bk": 12
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "3-0",
-      "status": "71",
+      "status": "72",
       "live": true,
       "ft": false,
       "ko": "13:00",
@@ -196,6 +196,6 @@
   ],
   "feeds": {
     "allsports_matches": 13,
-    "bookmaker_matches": 187
+    "bookmaker_matches": 188
   }
 }
