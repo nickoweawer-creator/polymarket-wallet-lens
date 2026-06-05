@@ -1,12 +1,12 @@
 {
-  "updated": "16:25:52",
+  "updated": "16:26:44",
   "speed": {
     "as": 0,
-    "bk": 16
+    "bk": 17
   },
   "coverage": {
     "as": 0,
-    "bk": 1
+    "bk": 0
   },
   "overall": {
     "as": 0,
@@ -66,7 +66,7 @@
     {
       "match": "Georgia vs Bahrain",
       "score": "0-0",
-      "status": "24",
+      "status": "25",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "2-0",
-      "status": "23",
+      "status": "24",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -196,11 +196,11 @@
     {
       "match": "Tajikistan vs India",
       "score": "3-0",
-      "as": null,
+      "as": "16:26:03",
       "bk": "16:24:36",
       "bk_prov": "bet365",
-      "delta": null,
-      "winner": "cov_bk"
+      "delta": 86.9,
+      "winner": "bk"
     },
     {
       "match": "Thailand vs Kuwait",
