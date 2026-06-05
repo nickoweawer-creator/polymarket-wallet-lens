@@ -1,0 +1,83 @@
+<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Live Goal Race — AllSportsAPI vs Bookmakers</title>
+<style>
+body{margin:0;background:#0b0d10;color:#e7ecf2;font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial}
+.wrap{max-width:980px;margin:0 auto;padding:24px 18px 70px}
+h1{font-size:22px;margin:0 0 2px}.sub{color:#8a97a6;margin:0 0 18px;font-size:13px}
+a{color:#4493f8;text-decoration:none}
+.board{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 18px}
+.card{flex:1;min-width:240px;background:#14181d;border:1px solid #262d36;border-radius:14px;padding:16px 18px}
+.card h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8a97a6}
+.score{display:flex;align-items:center;justify-content:center;gap:14px;font-variant-numeric:tabular-nums}
+.score .n{font-size:42px;font-weight:800}.score .vs{color:#8a97a6;font-size:18px}
+.a{color:#3fb950}.b{color:#f0a33b}
+.lab{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#8a97a6}
+table{width:100%;border-collapse:collapse;background:#14181d;border:1px solid #262d36;border-radius:12px;overflow:hidden}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #262d36;font-size:13px}
+th{color:#8a97a6;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
+tbody tr:last-child td{border-bottom:none}
+.live{color:#f85149;font-weight:700}.up{color:#8a97a6}.ft{color:#6e7781}
+.win-a{color:#3fb950;font-weight:700}.win-b{color:#f0a33b;font-weight:700}.tie{color:#8a97a6}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#f85149;margin-right:5px;animation:p 1.4s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+.foot{color:#6e7781;font-size:12px;margin-top:14px}
+h2{font-size:14px;margin:22px 0 8px;color:#cdd6df}
+</style></head><body><div class=wrap>
+<h1>⚽ Live Goal Race</h1>
+<p class=sub><span class=a>🅰 AllSportsAPI</span> (WebSocket push) &nbsp;vs&nbsp; <span class=b>🅱 Bookmaker feeds</span> (bet365 / draftkings / paddypower / 22bet) — who detects each goal first. <a href="./">← Wallet Lens</a></p>
+
+<div class=board>
+  <div class=card><h3>Speed race · both caught it</h3>
+    <div class=score><span class="n a" id=sa>0</span><span class=vs>—</span><span class="n b" id=sb>0</span></div>
+    <div class=lab><span>🅰 AllSportsAPI first</span><span>Bookmaker first 🅱</span></div></div>
+  <div class=card><h3>Coverage · other feed missed</h3>
+    <div class=score><span class="n a" id=ca>0</span><span class=vs>—</span><span class="n b" id=cb>0</span></div>
+    <div class=lab><span>🅰 exclusive</span><span>exclusive 🅱</span></div></div>
+  <div class=card><h3>Overall points</h3>
+    <div class=score><span class="n a" id=oa>0</span><span class=vs>—</span><span class="n b" id=ob>0</span></div>
+    <div class=lab><span>🅰 total</span><span>total 🅱</span></div></div>
+</div>
+
+<h2>Today's matches</h2>
+<table><thead><tr><th>Match</th><th class=num>Score</th><th>Status</th><th>Seen by</th></tr></thead>
+<tbody id=matches><tr><td colspan=4 class=up>loading…</td></tr></tbody></table>
+
+<h2>Goal-by-goal</h2>
+<table><thead><tr><th>Match</th><th class=num>Goal</th><th class=num>🅰 AllSports</th><th class=num>🅱 Bookmaker</th><th>Winner</th></tr></thead>
+<tbody id=goals><tr><td colspan=5 class=up>No goals yet — first kickoff ~11:30 UTC. Page auto-refreshes.</td></tr></tbody></table>
+
+<p class=foot id=foot>—</p>
+</div>
+<script>
+async function load(){
+  try{
+    const r=await fetch('competition.json?t='+Date.now());
+    const d=await r.json();
+    sa.textContent=d.speed.as; sb.textContent=d.speed.bk;
+    ca.textContent=d.coverage.as; cb.textContent=d.coverage.bk;
+    oa.textContent=d.overall.as; ob.textContent=d.overall.bk;
+    // matches table
+    const mt=d.matches.map(m=>{
+      const st = m.live?`<span class=live><span class=dot></span>${m.status||'LIVE'}'</span>` : (m.ft?`<span class=ft>FT</span>`:`<span class=up>${m.ko||'—'}</span>`);
+      const seen = (m.seen_as?'🅰':'·')+' '+(m.seen_bk?'🅱':'·');
+      return `<tr><td>${m.match}</td><td class=num>${m.score||'–'}</td><td>${st}</td><td>${seen}</td></tr>`;
+    }).join('');
+    document.getElementById('matches').innerHTML = mt || '<tr><td colspan=4 class=up>—</td></tr>';
+    // goals table
+    if(d.goals.length){
+      document.getElementById('goals').innerHTML = d.goals.map(g=>{
+        let w = g.winner==='as'?`<span class=win-a>🅰 +${g.delta}s</span>`
+              : g.winner==='bk'?`<span class=win-b>🅱 ${g.bk_prov} +${g.delta}s</span>`
+              : g.winner==='cov_as'?`<span class=win-a>🅰 coverage</span>`
+              : g.winner==='cov_bk'?`<span class=win-b>🅱 coverage</span>`
+              : `<span class=tie>tie</span>`;
+        return `<tr><td>${g.match}</td><td class=num>${g.score}</td><td class=num>${g.as||'—'}</td><td class=num>${g.bk||'—'}${g.bk_prov&&g.bk?` <span class=up>${g.bk_prov}</span>`:''}</td><td>${w}</td></tr>`;
+      }).join('');
+    }
+    foot.textContent = `feeds: AllSportsAPI tracking ${d.feeds.allsports_matches} live · bookmakers ${d.feeds.bookmaker_matches} live | updated ${d.updated} UTC (auto-refresh 15s)`;
+  }catch(e){ foot.textContent='waiting for first data publish…'; }
+}
+load(); setInterval(load, 15000);
+</script></body></html>
