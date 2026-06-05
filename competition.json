@@ -1,5 +1,5 @@
 {
-  "updated": "14:25:59",
+  "updated": "14:27:41",
   "speed": {
     "as": 0,
     "bk": 12
@@ -38,7 +38,7 @@
       "score": "2-2",
       "status": "",
       "live": true,
-      "ft": false,
+      "ft": true,
       "ko": "12:30",
       "seen_as": true,
       "seen_bk": true
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "3-0",
-      "status": "58",
+      "status": "59",
       "live": true,
       "ft": false,
       "ko": "13:00",
