@@ -1,16 +1,16 @@
 {
-  "updated": "16:07:05",
+  "updated": "16:07:57",
   "speed": {
     "as": 0,
     "bk": 14
   },
   "coverage": {
     "as": 0,
-    "bk": 0
+    "bk": 1
   },
   "overall": {
     "as": 0,
-    "bk": 14
+    "bk": 15
   },
   "matches": [
     {
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "1-0",
-      "status": "50",
+      "status": "51",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "1-0",
-      "status": "4",
+      "status": "5",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -176,6 +176,15 @@
       "winner": "bk"
     },
     {
+      "match": "Tajikistan vs India",
+      "score": "2-0",
+      "as": null,
+      "bk": "16:07:40",
+      "bk_prov": "22bet",
+      "delta": null,
+      "winner": "cov_bk"
+    },
+    {
       "match": "Thailand vs Kuwait",
       "score": "1-0",
       "as": "13:13:02",
@@ -213,7 +222,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 41,
+    "allsports_matches": 38,
     "bookmaker_matches": 282
   }
 }
