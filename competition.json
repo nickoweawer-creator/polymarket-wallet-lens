@@ -1,5 +1,5 @@
 {
-  "updated": "17:14:22",
+  "updated": "17:15:14",
   "speed": {
     "as": 0,
     "bk": 20
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "3-0",
-      "status": "53",
+      "status": "54",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -267,7 +267,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 53,
-    "bookmaker_matches": 342
+    "allsports_matches": 52,
+    "bookmaker_matches": 346
   }
 }
