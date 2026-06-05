@@ -1,5 +1,5 @@
 {
-  "updated": "12:33:45",
+  "updated": "12:34:37",
   "speed": {
     "as": 0,
     "bk": 3
@@ -26,7 +26,7 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "status": "32",
+      "status": "33",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -36,7 +36,7 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "0-0",
-      "status": "4",
+      "status": "5",
       "live": true,
       "ft": false,
       "ko": "12:30",
@@ -115,6 +115,6 @@
   ],
   "feeds": {
     "allsports_matches": 17,
-    "bookmaker_matches": 140
+    "bookmaker_matches": 143
   }
 }
