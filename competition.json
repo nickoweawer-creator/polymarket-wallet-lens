@@ -1,5 +1,5 @@
 {
-  "updated": "13:29:53",
+  "updated": "13:30:45",
   "speed": {
     "as": 0,
     "bk": 8
@@ -26,7 +26,7 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "status": "71",
+      "status": "72",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "1-0",
-      "status": "25",
+      "status": "26",
       "live": true,
       "ft": false,
       "ko": "13:00",
