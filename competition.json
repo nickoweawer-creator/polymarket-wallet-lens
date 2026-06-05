@@ -1,5 +1,5 @@
 {
-  "updated": "21:31:33",
+  "updated": "21:37:29",
   "speed": {
     "as": 0,
     "bk": 23
@@ -21,7 +21,7 @@
       "ft": true,
       "ko": "11:30",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Hong Kong vs Mongolia",
@@ -31,7 +31,7 @@
       "ft": true,
       "ko": "12:00",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Thailand vs Kuwait",
@@ -41,7 +41,7 @@
       "ft": true,
       "ko": "12:30",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Indonesia vs Oman",
@@ -51,7 +51,7 @@
       "ft": true,
       "ko": "13:00",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Tajikistan vs India",
@@ -61,7 +61,7 @@
       "ft": true,
       "ko": "15:00",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Georgia vs Bahrain",
@@ -71,7 +71,7 @@
       "ft": true,
       "ko": "16:00",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     },
     {
       "match": "Belarus vs Syria",
@@ -81,7 +81,7 @@
       "ft": true,
       "ko": "16:00",
       "seen_as": true,
-      "seen_bk": true
+      "seen_bk": false
     }
   ],
   "goals": [
@@ -295,6 +295,6 @@
   ],
   "feeds": {
     "allsports_matches": 3,
-    "bookmaker_matches": 515
+    "bookmaker_matches": 5
   }
 }
