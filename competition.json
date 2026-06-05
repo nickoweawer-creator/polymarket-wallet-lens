@@ -1,12 +1,12 @@
 {
-  "updated": "13:18:38",
+  "updated": "13:19:30",
   "speed": {
     "as": 0,
-    "bk": 7
+    "bk": 8
   },
   "coverage": {
     "as": 0,
-    "bk": 1
+    "bk": 0
   },
   "overall": {
     "as": 0,
@@ -26,7 +26,7 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "status": "60",
+      "status": "61",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -35,7 +35,7 @@
     },
     {
       "match": "Thailand vs Kuwait",
-      "score": "1-0",
+      "score": "2-0",
       "status": "",
       "live": true,
       "ft": false,
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "1-0",
-      "status": "14",
+      "status": "15",
       "live": true,
       "ft": false,
       "ko": "13:00",
@@ -151,15 +151,15 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "2-0",
-      "as": null,
+      "as": "13:19:09",
       "bk": "13:18:08",
       "bk_prov": "paddypower",
-      "delta": null,
-      "winner": "cov_bk"
+      "delta": 60.3,
+      "winner": "bk"
     }
   ],
   "feeds": {
     "allsports_matches": 10,
-    "bookmaker_matches": 165
+    "bookmaker_matches": 166
   }
 }
