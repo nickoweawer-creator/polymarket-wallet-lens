@@ -1,8 +1,8 @@
 {
-  "updated": "13:10:52",
+  "updated": "13:11:44",
   "speed": {
     "as": 0,
-    "bk": 4
+    "bk": 5
   },
   "coverage": {
     "as": 0,
@@ -10,13 +10,13 @@
   },
   "overall": {
     "as": 0,
-    "bk": 5
+    "bk": 6
   },
   "matches": [
     {
       "match": "Singapore vs China",
       "score": "1-2",
-      "status": "83",
+      "status": "84",
       "live": true,
       "ft": false,
       "ko": "11:30",
@@ -25,8 +25,8 @@
     },
     {
       "match": "Hong Kong vs Mongolia",
-      "score": "1-0",
-      "status": "52",
+      "score": "2-0",
+      "status": "53",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -36,7 +36,7 @@
     {
       "match": "Thailand vs Kuwait",
       "score": "0-0",
-      "status": "41",
+      "status": "42",
       "live": true,
       "ft": false,
       "ko": "12:30",
@@ -46,7 +46,7 @@
     {
       "match": "Indonesia vs Oman",
       "score": "0-0",
-      "status": "6",
+      "status": "7",
       "live": true,
       "ft": false,
       "ko": "13:00",
@@ -97,11 +97,11 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "2-0",
-      "as": null,
+      "as": "13:10:59",
       "bk": "13:10:29",
       "bk_prov": "22bet",
-      "delta": null,
-      "winner": "cov_bk"
+      "delta": 30.1,
+      "winner": "bk"
     },
     {
       "match": "Singapore vs China",
@@ -129,6 +129,15 @@
       "bk_prov": "bet365",
       "delta": 33.4,
       "winner": "bk"
+    },
+    {
+      "match": "Thailand vs Kuwait",
+      "score": "1-0",
+      "as": null,
+      "bk": "13:11:38",
+      "bk_prov": "bet365",
+      "delta": null,
+      "winner": "cov_bk"
     }
   ],
   "feeds": {
