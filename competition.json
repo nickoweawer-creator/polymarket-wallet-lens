@@ -1,5 +1,5 @@
 {
-  "updated": "16:18:12",
+  "updated": "16:19:03",
   "speed": {
     "as": 0,
     "bk": 16
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "1-0",
-      "status": "61",
+      "status": "62",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -66,7 +66,7 @@
     {
       "match": "Georgia vs Bahrain",
       "score": "0-0",
-      "status": "17",
+      "status": "18",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "2-0",
-      "status": "15",
+      "status": "16",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -231,7 +231,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 38,
+    "allsports_matches": 39,
     "bookmaker_matches": 287
   }
 }
