@@ -1,16 +1,16 @@
 {
-  "updated": "12:10:28",
+  "updated": "12:11:19",
   "speed": {
     "as": 0,
     "bk": 2
   },
   "coverage": {
     "as": 0,
-    "bk": 0
+    "bk": 1
   },
   "overall": {
     "as": 0,
-    "bk": 2
+    "bk": 3
   },
   "matches": [
     {
@@ -26,7 +26,7 @@
     {
       "match": "Hong Kong vs Mongolia",
       "score": "1-0",
-      "status": "9",
+      "status": "10",
       "live": true,
       "ft": false,
       "ko": "12:00",
@@ -102,6 +102,15 @@
       "bk_prov": "22bet",
       "delta": 23.3,
       "winner": "bk"
+    },
+    {
+      "match": "Singapore vs China",
+      "score": "0-2",
+      "as": null,
+      "bk": "12:10:45",
+      "bk_prov": "bet365",
+      "delta": null,
+      "winner": "cov_bk"
     }
   ],
   "feeds": {
