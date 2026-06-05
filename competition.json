@@ -1,5 +1,5 @@
 {
-  "updated": "16:20:46",
+  "updated": "16:21:37",
   "speed": {
     "as": 0,
     "bk": 16
@@ -56,7 +56,7 @@
     {
       "match": "Tajikistan vs India",
       "score": "2-0",
-      "status": "63",
+      "status": "64",
       "live": true,
       "ft": false,
       "ko": "15:00",
@@ -66,7 +66,7 @@
     {
       "match": "Georgia vs Bahrain",
       "score": "0-0",
-      "status": "19",
+      "status": "20",
       "live": true,
       "ft": false,
       "ko": "16:00",
@@ -76,7 +76,7 @@
     {
       "match": "Belarus vs Syria",
       "score": "2-0",
-      "status": "17",
+      "status": "19",
       "live": true,
       "ft": false,
       "ko": "16:00",
