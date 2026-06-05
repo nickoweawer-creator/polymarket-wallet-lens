@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>⚽ GOAL ALERT — Hungary vs Finland</title>
+<style>
+body{margin:0;background:#0b0d10;color:#e7ecf2;font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial;text-align:center}
+.wrap{max-width:680px;margin:0 auto;padding:26px 18px 60px}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#8a97a6;margin:0 0 20px;font-size:13px}
+#arm{font-size:20px;font-weight:800;padding:18px 30px;border:0;border-radius:14px;background:#238636;color:#fff;cursor:pointer;margin:10px}
+#arm.armed{background:#1f2630;color:#8a97a6;font-size:15px;font-weight:600}
+.score{font-size:64px;font-weight:900;font-variant-numeric:tabular-nums;margin:18px 0 4px;letter-spacing:2px}
+.teams{font-size:18px;color:#cdd6df;margin-bottom:2px}.min{color:#f0a33b;font-size:15px}
+.stat{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.chip{background:#14181d;border:1px solid #262d36;border-radius:10px;padding:8px 12px;font-size:12px;color:#8a97a6}
+.chip b{color:#e7ecf2}.ok{color:#3fb950}.bad{color:#f85149}
+#log{text-align:left;background:#14181d;border:1px solid #262d36;border-radius:10px;padding:10px 14px;margin-top:18px;font-family:ui-monospace,Menlo,monospace;font-size:12px;max-height:240px;overflow:auto}
+.note{color:#6e7781;font-size:12px;margin-top:16px}
+body.flash{animation:fl .5s 8}@keyframes fl{0%,100%{background:#0b0d10}50%{background:#7a1020}}
+</style></head><body><div class=wrap>
+<h1>⚽ GOAL ALERT</h1>
+<p class=sub>Hungary vs Finland — live score (AllSportsAPI WS) + fast trigger (Polymarket price). Sound plays in THIS browser.</p>
+<button id=arm>🔔 ARM ALERT (tap to enable sound)</button>
+<div class=teams>🇭🇺 Hungary &nbsp;—&nbsp; Finland 🇫🇮</div>
+<div class=score id=score>– : –</div>
+<div class=min id=min>waiting…</div>
+<div class=stat>
+  <div class=chip>AllSports WS: <b id=wsst class=bad>off</b></div>
+  <div class=chip>Polymarket: <b id=pmst class=bad>off</b></div>
+  <div class=chip>Hungary win: <b id=pmprice>–</b></div>
+  <div class=chip>last update: <b id=upd>–</b></div>
+</div>
+<div id=log></div>
+<p class=note>Keep this tab open & your volume up. Tap ARM once (browsers require a tap to allow sound). Two triggers: a score change on AllSportsAPI, or a Polymarket price jump ≥5% (faster). On a goal: loud beeps + spoken score + screen flash + desktop notification.</p>
+</div>
+<script>
+const AS_KEY="137359d0c2214ff5740efe1ab55e84ec9e6f0b56d69eac36a0a6d76f7f856bfd";
+const HOME="hungary", AWAY="finland";
+let ac, lastTotal=null, pmCond=null, pmYes="Yes", pmHist=[], lastAlarm=0;
+const $=id=>document.getElementById(id);
+function log(m){const d=$('log');const t=new Date().toISOString().substr(11,8);d.innerHTML=`<div>${t}  ${m}</div>`+d.innerHTML;}
+function beep(freq,dur,vol){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+dur);}
+function alarm(text){
+  const now=Date.now(); if(now-lastAlarm<8000)return; lastAlarm=now;   // 8s cooldown
+  log("🚨 "+text);
+  let i=0; const iv=setInterval(()=>{beep(i%2?1320:880,0.18,0.9); if(++i>=14)clearInterval(iv);},190);
+  try{const u=new SpeechSynthesisUtterance(text);u.rate=1.0;u.volume=1;speechSynthesis.speak(u);
+      setTimeout(()=>speechSynthesis.speak(new SpeechSynthesisUtterance(text)),1600);}catch(e){}
+  document.body.classList.add('flash');setTimeout(()=>document.body.classList.remove('flash'),4000);
+  try{if(Notification.permission==='granted')new Notification('⚽ '+text);}catch(e){}
+}
+function setScore(h,a,min){$('score').textContent=`${h} : ${a}`;if(min)$('min').textContent=min+"'";$('upd').textContent=new Date().toISOString().substr(11,8);}
+// --- AllSportsAPI WebSocket (live score) ---
+function connectWS(){
+  const ws=new WebSocket(`wss://wss.allsportsapi.com/live_events?APIkey=${AS_KEY}&timezone=UTC`);
+  ws.onopen=()=>{$('wsst').textContent='live';$('wsst').className='ok';log('AllSports WS connected');};
+  ws.onclose=()=>{$('wsst').textContent='reconnecting';$('wsst').className='bad';setTimeout(connectWS,3000);};
+  ws.onerror=()=>{$('wsst').textContent='error';$('wsst').className='bad';};
+  ws.onmessage=e=>{let arr;try{arr=JSON.parse(e.data);}catch(_){return;}
+    if(!Array.isArray(arr))arr=arr.result||arr.data||[arr];
+    for(const m of arr){const b=((m.event_home_team||'')+' '+(m.event_away_team||'')).toLowerCase();
+      if(b.includes(HOME)&&b.includes(AWAY)){
+        const sc=(m.event_final_result||'0 - 0').match(/(\d+)\s*-\s*(\d+)/);if(!sc)continue;
+        const h=+sc[1],a=+sc[2],tot=h+a; setScore(h,a,m.event_status);
+        if(lastTotal!==null&&tot>lastTotal) alarm(`GOAL. Hungary ${h}, Finland ${a}`);
+        lastTotal=tot;
+      }}};
+}
+// --- Polymarket fast trigger (price jump) ---
+async function resolvePM(){
+  try{const r=await fetch('https://gamma-api.polymarket.com/public-search?q=Hungary%20Finland&limit_per_type=6');
+    const d=await r.json();
+    const ev=(d.events||[]).find(e=>/hungary/i.test(e.title)&&/finland/i.test(e.title));
+    if(!ev){log('PM: no market found');return;}
+    const f=await(await fetch('https://gamma-api.polymarket.com/events/'+ev.id)).json();
+    const mk=(f.markets||[]).find(m=>/hungary/i.test(m.question)&&/win/i.test(m.question));
+    if(mk){pmCond=mk.conditionId;try{pmYes=JSON.parse(mk.outcomes)[0]}catch(_){}; $('pmst').textContent='live';$('pmst').className='ok';log('PM market: '+mk.question);pollPM();}
+  }catch(e){log('PM resolve err');}
+}
+async function pollPM(){
+  if(!pmCond)return;
+  try{const arr=await(await fetch(`https://data-api.polymarket.com/trades?market=${pmCond}&limit=20`)).json();
+    if(Array.isArray(arr)&&arr.length){let p=parseFloat(arr[0].price);if(arr[0].outcome!==pmYes)p=1-p;
+      $('pmprice').textContent=(p*100).toFixed(0)+'%';
+      const now=Date.now();pmHist.push([now,p]);pmHist=pmHist.filter(x=>now-x[0]<25000);
+      const base=pmHist[0][1];
+      if(Math.abs(p-base)>=0.05) alarm(`Polymarket move. Hungary win ${(p*100).toFixed(0)} percent. likely GOAL`);
+    }}catch(e){$('pmst').textContent='blocked';$('pmst').className='bad';}
+  setTimeout(pollPM,1500);
+}
+$('arm').onclick=()=>{
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  beep(880,0.15,0.7);setTimeout(()=>beep(1320,0.2,0.7),180);          // test beep
+  try{speechSynthesis.speak(new SpeechSynthesisUtterance('Alert armed'));}catch(e){}
+  try{Notification.requestPermission();}catch(e){}
+  $('arm').textContent='🔔 ARMED — listening for goals';$('arm').className='armed';
+  connectWS(); resolvePM();
+  log('armed — you should have heard the test beep');
+};
+</script></body></html>
