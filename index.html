@@ -65,6 +65,26 @@
   table.detail th,table.detail td{padding:5px 11px;font-size:12px;border-bottom:1px solid var(--line)}
   .bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin-top:4px}
   .bar > i{display:block;height:100%;background:var(--pos)}
+  .lead-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0 18px}
+  .lead-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .lead-card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .lead-card .v{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
+  .lead-card .s{color:var(--muted);font-size:12px;margin-top:2px}
+  .lead-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .lead-slider{min-width:280px;width:360px;max-width:100%;accent-color:var(--accent)}
+  .lead-bars{display:grid;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+  .lead-bar-row{display:grid;grid-template-columns:54px minmax(0,1fr) 62px;gap:10px;align-items:center}
+  .lead-bar-label,.lead-bar-value{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .lead-bar-value{text-align:right;color:var(--ink);font-family:ui-monospace,Menlo,monospace}
+  .lead-bar-track{height:9px;background:var(--panel2);border-radius:999px;overflow:hidden}
+  .lead-bar-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pos),var(--accent))}
+  .lead-row-active td{background:#102033}
+  .lead-footnote{color:var(--muted);font-size:12px;margin-top:12px}
+  @media(max-width:720px){
+    #addr{min-width:0;width:100%}
+    .lead-bar-row{grid-template-columns:48px minmax(0,1fr) 58px}
+    .lead-slider{width:100%}
+  }
 </style>
 </head>
 <body>
@@ -78,6 +98,7 @@
     <button class="tab" data-view="crypto">Crypto Leaderboard</button>
     <button class="tab" data-view="tennis">Tennis Leaderboard</button>
     <button class="tab" data-view="sharp">Sharp Movers</button>
+    <button class="tab" data-view="goals">⚽ Goal Advantage</button>
     <button class="tab" data-view="strategies">📈 Strategies &amp; Monte Carlo</button>
     <button class="tab" data-view="liverace">⚽ Live Goal Race</button>
   </nav>
@@ -144,6 +165,23 @@
     </div>
     <div id="spStatus" class="status"></div>
     <div id="spResults"></div>
+  </div>
+
+  <div id="view-goals" class="hide">
+    <section>
+      <h2>Goal advantage validation</h2>
+      <p class="note">Historical football triggers where a team extends a one-goal lead into a two-goal lead. Filter by league and by the minute when the advantage became two goals.</p>
+      <div class="lead-controls">
+        <label class="field"><span>League</span>
+          <select id="leadLeague"></select>
+        </label>
+        <label class="field"><span>Minimum trigger minute: <b id="leadMinuteLabel">0+</b></span>
+          <input id="leadMinute" class="lead-slider" type="range" min="0" max="90" step="5" value="0" />
+        </label>
+      </div>
+      <div id="leadStatus" class="status"></div>
+      <div id="leadResults"></div>
+    </section>
   </div>
 
   <div class="foot">
@@ -705,6 +743,90 @@ $("spClass").addEventListener("change",renderSharp);
 $("spMin").addEventListener("input",renderSharp);
 $("spSearch").addEventListener("input",renderSharp);
 
+/* ---------- Goal advantage tab ---------- */
+let LEAD = null;
+async function loadLeadAdvantage(){
+  if(LEAD){ renderLeadAdvantage(); return; }
+  $("leadStatus").textContent = "Loading goal advantage data…";
+  try{
+    const r = await fetch("football-lead-extension-analysis.json", {cache:"no-store"});
+    if(!r.ok) throw new Error(String(r.status));
+    LEAD = await r.json();
+    $("leadLeague").innerHTML = (LEAD.leagues||["All leagues"]).map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+    $("leadStatus").textContent = `${LEAD.triggerCount.toLocaleString()} triggers · ${LEAD.matchCount.toLocaleString()} matches · ${LEAD.source}`;
+    renderLeadAdvantage();
+  }catch(e){
+    $("leadStatus").textContent = "Goal advantage data unavailable.";
+    $("leadResults").innerHTML = "";
+  }
+}
+function leadBucketStart(bucket){
+  return bucket === "90+" ? 90 : Number(bucket.slice(0,2));
+}
+function leadWeighted(rows, key){
+  const n = rows.reduce((s,r)=>s+Number(r.n||0),0);
+  return n ? rows.reduce((s,r)=>s+Number(r[key]||0)*Number(r.n||0),0)/n : 0;
+}
+function renderLeadAdvantage(){
+  if(!LEAD) return;
+  const league = $("leadLeague").value || "All leagues";
+  const minMinute = Number($("leadMinute").value || 0);
+  $("leadMinuteLabel").textContent = `${minMinute}+`;
+  const rows = (LEAD.buckets||[])
+    .filter(r=>r.league===league && Number(r.n||0)>0 && leadBucketStart(r.bucket)>=minMinute)
+    .sort((a,b)=>(a.sort||0)-(b.sort||0));
+  const allRows = (LEAD.buckets||[])
+    .filter(r=>r.league===league && Number(r.n||0)>0)
+    .sort((a,b)=>(a.sort||0)-(b.sort||0));
+  const n = rows.reduce((s,r)=>s+Number(r.n||0),0);
+  const winRate = leadWeighted(rows,"winRate");
+  const notLoseRate = leadWeighted(rows,"notLoseRate");
+  const drawRate = leadWeighted(rows,"drawRate");
+  const lossRate = leadWeighted(rows,"lossRate");
+  const concede2Rate = leadWeighted(rows,"concede2PlusRate");
+  const best = rows.reduce((b,r)=>{
+    if(!b) return r;
+    if(Number(r.notLoseRate)!==Number(b.notLoseRate)) return Number(r.notLoseRate)>Number(b.notLoseRate)?r:b;
+    if(Number(r.winRate)!==Number(b.winRate)) return Number(r.winRate)>Number(b.winRate)?r:b;
+    return Number(r.n)>Number(b.n)?r:b;
+  }, null);
+  const cards = [
+    ["Triggers", n.toLocaleString(), `${league} · ${minMinute}+`],
+    ["Win", fmtPct(winRate), `${n.toLocaleString()} filtered triggers`],
+    ["Not lose", fmtPct(notLoseRate), `${fmtPct(lossRate)} loss rate`],
+    ["Concede 2+", fmtPct(concede2Rate), `${fmtPct(drawRate)} draw rate`],
+    ["Best bucket", best ? best.bucket : "—", best ? `${fmtPct(best.notLoseRate)} not lose · n=${Number(best.n).toLocaleString()}` : "No sample"],
+  ].map(([k,v,s])=>`<div class="lead-card"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+  const bars = allRows.map(r=>{
+    const active = leadBucketStart(r.bucket)>=minMinute;
+    const width = Math.max(3, Math.round(Number(r.notLoseRate||0)*100));
+    return `<div class="lead-bar-row" style="${active?'':'opacity:.38'}">
+      <span class="lead-bar-label">${esc(r.bucket)}</span>
+      <span class="lead-bar-track"><i style="width:${width}%"></i></span>
+      <span class="lead-bar-value">${fmtPct(r.notLoseRate)}</span>
+    </div>`;
+  }).join("");
+  const tableRows = rows.map(r=>{
+    return `<tr class="lead-row-active">
+      <td><span class="chip">${esc(r.bucket)}</span></td>
+      <td class="num">${Number(r.n||0).toLocaleString()}</td>
+      <td class="num">${fmtPct(r.winRate)}</td>
+      <td class="num">${fmtPct(r.notLoseRate)}</td>
+      <td class="num">${fmtPct(r.drawRate)}</td>
+      <td class="num">${fmtPct(r.lossRate)}</td>
+      <td class="num">${fmtPct(r.concede2PlusRate)}</td>
+    </tr>`;
+  }).join("");
+  $("leadResults").innerHTML = `
+    <div class="lead-grid">${cards}</div>
+    <div class="lead-bars">${bars}</div>
+    <table><thead><tr><th>5 min bracket</th><th class="num">Triggers</th><th class="num">Win</th><th class="num">Not lose</th><th class="num">Draw</th><th class="num">Loss</th><th class="num">Concede 2+</th></tr></thead>
+    <tbody>${tableRows || `<tr><td colspan="7" style="color:var(--muted)">No triggers match this filter.</td></tr>`}</tbody></table>
+    <p class="lead-footnote">Event: ${esc(LEAD.event)}. Slider filters by the minute the lead became two goals; highlighted rows are included in the headline rates.</p>`;
+}
+$("leadLeague").addEventListener("change", renderLeadAdvantage);
+$("leadMinute").addEventListener("input", renderLeadAdvantage);
+
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
   const v = btn.dataset.view;
   if(v==="strategies"){ window.location.href="strategies.html"; return; }
@@ -713,8 +835,10 @@ document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>
   $("view-wallet").classList.toggle("hide", v!=="wallet");
   $("view-leaderboard").classList.toggle("hide", !(v==="sports" || v==="crypto" || v==="tennis"));
   $("view-sharp").classList.toggle("hide", v!=="sharp");
+  $("view-goals").classList.toggle("hide", v!=="goals");
   if(v==="sports" || v==="crypto" || v==="tennis") loadLeaderboard(v);
   if(v==="sharp") loadSharp();
+  if(v==="goals") loadLeadAdvantage();
 }));
 </script>
 </body>
