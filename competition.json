@@ -1,5 +1,5 @@
 {
-  "updated": "11:58:21",
+  "updated": "11:59:12",
   "speed": {
     "as": 0,
     "bk": 1
@@ -16,7 +16,7 @@
     {
       "match": "Singapore vs China",
       "score": "0-1",
-      "status": "28",
+      "status": "29",
       "live": true,
       "ft": false,
       "ko": "11:30",
@@ -97,6 +97,6 @@
   ],
   "feeds": {
     "allsports_matches": 20,
-    "bookmaker_matches": 121
+    "bookmaker_matches": 126
   }
 }
