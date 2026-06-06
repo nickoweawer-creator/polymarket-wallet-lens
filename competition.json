@@ -1,5 +1,5 @@
 {
-  "updated": "23:58:40",
+  "updated": "00:00:23",
   "speed": {
     "as": 0,
     "bk": 23
@@ -15,72 +15,72 @@
   "matches": [
     {
       "match": "Singapore vs China",
-      "score": "1-2",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "11:30",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Hong Kong vs Mongolia",
-      "score": "2-0",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "12:00",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Thailand vs Kuwait",
-      "score": "2-2",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "12:30",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Indonesia vs Oman",
-      "score": "3-0",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "13:00",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Tajikistan vs India",
-      "score": "3-1",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "15:00",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Georgia vs Bahrain",
-      "score": "2-0",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "16:00",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     },
     {
       "match": "Belarus vs Syria",
-      "score": "4-1",
+      "score": "",
       "status": "",
       "live": false,
-      "ft": true,
-      "ko": "16:00",
-      "seen_as": true,
+      "ft": false,
+      "ko": "",
+      "seen_as": false,
       "seen_bk": false
     }
   ],
@@ -294,7 +294,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 13,
+    "allsports_matches": 0,
     "bookmaker_matches": 34
   }
 }
