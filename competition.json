@@ -1,5 +1,5 @@
 {
-  "updated": "15:07:04",
+  "updated": "15:08:46",
   "speed": {
     "as": 0,
     "bk": 23
@@ -294,7 +294,7 @@
     }
   ],
   "feeds": {
-    "allsports_matches": 0,
+    "allsports_matches": 82,
     "bookmaker_matches": 171
   }
 }
